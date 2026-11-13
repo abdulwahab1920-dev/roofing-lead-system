@@ -7,7 +7,7 @@ npm install
 ADMIN_USERNAME=admin ADMIN_PASSWORD='use-a-long-local-password' SESSION_SECRET='replace-with-at-least-32-random-characters' npm start
 ```
 
-The app listens on `0.0.0.0:$PORT` (default 3847).
+Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 
 ## Routes
 
@@ -42,7 +42,7 @@ Optional:
 5. Set `OPENAI_API_KEY` if you want model-assisted scoring. Without it, rule-based scoring is used.
 6. Deploy this branch only after reviewing the pull request. Verify the disk mount and environment variables before switching production traffic.
 
-SQLite and session data are stored under `DB_PATH` and its directory. A persistent disk is required on Render because its ordinary service filesystem is ephemeral.
+SQLite lead data and login sessions share the database at `DB_PATH`. The app refuses to start in production if `DB_PATH` is missing or is not an absolute path. A persistent disk is required on Render because its ordinary service filesystem is ephemeral.
 
 ## Lead scoring and workflow
 
