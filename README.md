@@ -1,52 +1,53 @@
-# Summit Ridge Roofing — Lead Form & CRM (Parts 1–4)
+# Summit Ridge Roofing — Lead Form & CRM
 
-## How to run
+## Run locally
 
 ```bash
-cd /workspace/roofing-lead-system
 npm install
-npm start
+ADMIN_USERNAME=admin ADMIN_PASSWORD='use-a-long-local-password' SESSION_SECRET='replace-with-at-least-32-random-characters' npm start
 ```
 
-The app listens on `0.0.0.0:3847` (override with `PORT`).
+The app listens on `0.0.0.0:$PORT` (default 3847).
 
-## URLs
+## Routes
 
-- Public lead form: http://localhost:3847/
-- Thank-you page: http://localhost:3847/thanks
-- CRM login: http://localhost:3847/admin/login
-- Dashboard: http://localhost:3847/admin
-- CRM lead list: http://localhost:3847/admin/leads
-- Notifications: http://localhost:3847/admin/notifications
-- Follow-up tasks: http://localhost:3847/admin/tasks
-- Email log: http://localhost:3847/admin/emails
+- Public lead form: `/`
+- CRM login: `/admin/login`
+- Dashboard: `/admin`
+- Leads: `/admin/leads`
+- Notifications: `/admin/notifications`
+- Follow-up tasks: `/admin/tasks`
+- Email log: `/admin/emails`
 
-## Credentials
+## Required production environment variables
 
-- Username: `admin`
-- Password: `SummitRidge2026!`
+- `ADMIN_USERNAME`: private admin login name.
+- `ADMIN_PASSWORD`: strong unique password (at least 16 characters).
+- `SESSION_SECRET`: random secret (at least 32 characters).
+- `DB_PATH`: absolute path on a persistent mounted disk, for example `/var/data/leads.db`.
 
-The SQLite database is created at `data/leads.db` and seeded with sample leads on first run if empty.
+Optional:
 
+- `OPENAI_API_KEY`: enables OpenAI lead scoring refinement. Without it, the app uses transparent rule-based scoring.
+- `OPENAI_MODEL`: defaults to `gpt-4o-mini`.
+- `SEED_DEMO_DATA=true`: explicitly seeds sample leads on a fresh database. Keep unset/false for production.
+- SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `NOTIFY_EMAIL` or `SMTP_TO`.
 
-## Scoring
+## Render deployment checklist
 
-New leads are scored automatically when the form is submitted. Existing leads are backfilled on startup if they have no score. A **Re-run scoring** button is on each lead detail page.
+1. Attach a persistent disk to the web service, mounted at `/var/data`.
+2. Set `DB_PATH=/var/data/leads.db`.
+3. Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and `SESSION_SECRET` as Render environment variables. Do not commit them to Git.
+4. Keep `SEED_DEMO_DATA` unset/false for production.
+5. Set `OPENAI_API_KEY` if you want model-assisted scoring. Without it, rule-based scoring is used.
+6. Deploy this branch only after reviewing the pull request. Verify the disk mount and environment variables before switching production traffic.
 
-The default engine in `ai/leadScorer.js` is offline and needs no API key. It classifies the job, assigns a 0–100 score and Hot/Warm/Cold priority, estimates a 2026 US job-value range, and writes a short sales summary plus a recommended follow-up time.
+SQLite and session data are stored under `DB_PATH` and its directory. A persistent disk is required on Render because its ordinary service filesystem is ephemeral.
 
-If `OPENAI_API_KEY` is already set in the environment, scoring may be refined by OpenAI. The key is optional and the app works the same without it.
+## Lead scoring and workflow
 
+Each submitted lead is first given a deterministic rule-based score. If `OPENAI_API_KEY` is configured, the app attempts to refine that score with the configured OpenAI model; if the API is unavailable, it keeps the rule-based fallback. Scoring finishes before notifications and the follow-up task are created, so the task uses the final available priority and recommended follow-up.
 
-## Notifications and tasks
+A new lead creates an in-app notification, a follow-up task, and an email log entry. Actual email delivery requires SMTP configuration. Overdue tasks are flagged by the periodic workflow check.
 
-A new website lead creates an in-app notification (bell in the admin header), a follow-up task timed from the AI recommendation (for example, call within 15 minutes for a Hot emergency), and an internal email alert.
-
-Every outbound email is written to the **Email log** (`/admin/emails`) with to, subject, body, timestamp, and status, even when SMTP is not configured. If `SMTP_HOST` (and optional `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL` / `SMTP_TO`) is already set, the app also tries to send the message.
-
-The **Tasks** page groups follow-ups into overdue, today, and upcoming. You can complete or snooze a task (1 hour or 1 day), and add a task from a lead’s detail page. A lightweight 30-second check flags newly overdue tasks and adds a reminder notification.
-
-
-## Dashboard
-
-The admin home page at http://localhost:3847/admin is a live dashboard of SQLite data: new leads today, open Hot leads, pipeline (not Won/Lost), won this month (by date received), and overdue follow-ups. Tiles and charts link through to the filtered lead list or the tasks page. The full lead list is at `/admin/leads`. Dates for “today” and “this month” use America/Denver.
+Demo-only forced overdue tasks and artificial extra follow-ups have been removed. Existing valid tasks are not automatically modified or deleted.
