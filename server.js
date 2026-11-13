@@ -1,371 +1,41 @@
-const path = require("path");
-const express = require("express");
-const session = require("express-session");
-const dbmod = require("./db");
-const views = require("./views");
-const scorer = require("./ai/leadScorer");
-const workflow = require("./workflow");
-
-const PORT = Number(process.env.PORT) || 3847;
-const HOST = "0.0.0.0";
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "SummitRidge2026!";
-const SESSION_SECRET = process.env.SESSION_SECRET || "summit-ridge-part1-demo-secret";
-
-const db = dbmod.open();
-const app = express();
-
-app.disable("x-powered-by");
-app.use(express.urlencoded({ extended: false }));
-app.use(
-  session({
-    name: "sr.sid",
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: "lax", maxAge: 1000 * 60 * 60 * 8 },
-  })
-);
-app.use(express.static(path.join(__dirname, "public")));
-
-function requireAdmin(req, res, next) {
-  if (req.session && req.session.authenticated) return next();
-  const nextUrl = req.originalUrl || "/admin";
-  return res.redirect("/admin/login?next=" + encodeURIComponent(nextUrl));
-}
-
-function chrome() {
-  return {
-    unread: dbmod.countUnreadNotifications(db),
-    overdueCount: dbmod.countOverdueTasks(db),
-    notifications: dbmod.listNotifications(db, 8),
-  };
-}
-
-function safeNext(req, fallback) {
-  const next = trim((req.body && req.body.next) || "");
-  return next.startsWith("/admin") ? next : fallback;
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ZIP_RE = /^\d{5}(-\d{4})?$/;
-const PHONE_RE = /^[0-9+().\-\s]{7,30}$/;
-const STATE_CODES = new Set(dbmod.US_STATES.map(([code]) => code));
-
-function trim(value) {
-  return String(value || "").trim();
-}
-
-function inList(value, list) {
-  return list.includes(value);
-}
-
-function validateLead(body) {
-  const values = {
-    full_name: trim(body.full_name),
-    phone: trim(body.phone),
-    email: trim(body.email),
-    street: trim(body.street),
-    city: trim(body.city),
-    state: trim(body.state).toUpperCase(),
-    zip: trim(body.zip),
-    property_type: trim(body.property_type),
-    roof_type: trim(body.roof_type),
-    service_needed: trim(body.service_needed),
-    issue_description: trim(body.issue_description),
-    urgency: trim(body.urgency),
-    preferred_contact: trim(body.preferred_contact),
-  };
-  const errors = {};
-
-  if (!values.full_name) errors.full_name = "Enter your full name.";
-  else if (values.full_name.length < 2) errors.full_name = "Name is too short.";
-
-  if (!values.phone) errors.phone = "Enter a phone number.";
-  else if (!PHONE_RE.test(values.phone) || values.phone.replace(/\D/g, "").length < 10) {
-    errors.phone = "Enter a valid US phone number.";
-  }
-
-  if (!values.email) errors.email = "Enter an email address.";
-  else if (!EMAIL_RE.test(values.email)) errors.email = "Enter a valid email address.";
-
-  if (!values.street) errors.street = "Enter the street address.";
-  if (!values.city) errors.city = "Enter the city.";
-  if (!values.state) errors.state = "Select a state.";
-  else if (!STATE_CODES.has(values.state)) errors.state = "Select a valid US state.";
-
-  if (!values.zip) errors.zip = "Enter a ZIP code.";
-  else if (!ZIP_RE.test(values.zip)) errors.zip = "Enter a 5-digit ZIP code.";
-
-  if (!inList(values.property_type, dbmod.PROPERTY_TYPES)) {
-    errors.property_type = "Select a property type.";
-  }
-  if (!inList(values.roof_type, dbmod.ROOF_TYPES)) {
-    errors.roof_type = "Select a roof type.";
-  }
-  if (!inList(values.service_needed, dbmod.SERVICES)) {
-    errors.service_needed = "Select the service needed.";
-  }
-  if (!inList(values.urgency, dbmod.URGENCIES)) {
-    errors.urgency = "Select an urgency / timeline.";
-  }
-  if (!inList(values.preferred_contact, dbmod.CONTACT_METHODS)) {
-    errors.preferred_contact = "Select a preferred contact method.";
-  }
-  if (!values.issue_description) {
-    errors.issue_description = "Describe the issue.";
-  } else if (values.issue_description.length < 10) {
-    errors.issue_description = "Please add a bit more detail (at least 10 characters).";
-  }
-
-  return { values, errors, ok: Object.keys(errors).length === 0 };
-}
-
-app.get("/", (req, res) => {
-  res.type("html").send(views.formPage());
-});
-
-app.post("/leads", async (req, res) => {
-  const { values, errors, ok } = validateLead(req.body || {});
-  if (!ok) {
-    return res.status(400).type("html").send(
-      views.formPage({
-        values,
-        errors,
-        banner: "Please fix the highlighted fields and try again.",
-      })
-    );
-  }
-  const info = dbmod.insertLead(db, {
-    ...values,
-    status: "New",
-    created_at: new Date().toISOString(),
-  });
-  const leadId = info.lastInsertRowid;
-  const lead = dbmod.getLead(db, leadId);
-  await workflow.onNewLead(dbmod, db, lead);
-  if (process.env.OPENAI_API_KEY) {
-    scorer.scoreLeadMaybeAi(lead).then((result) => dbmod.saveScore(db, leadId, result)).catch(() => {});
-  }
-  res.redirect("/thanks?id=" + leadId);
-});
-
-app.get("/thanks", (req, res) => {
-  res.type("html").send(views.thanksPage());
-});
-
-app.get("/admin/login", (req, res) => {
-  if (req.session && req.session.authenticated) return res.redirect("/admin");
-  res.type("html").send(views.loginPage());
-});
-
-app.post("/admin/login", (req, res) => {
-  const username = trim(req.body && req.body.username);
-  const password = String((req.body && req.body.password) || "");
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    req.session.authenticated = true;
-    const next = trim(req.query.next || req.body.next || "");
-    const dest = next.startsWith("/admin") ? next : "/admin";
-    return res.redirect(dest);
-  }
-  res.status(401).type("html").send(views.loginPage({ error: "Invalid username or password." }));
-});
-
-app.post("/admin/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/admin/login");
-  });
-});
-
-app.get("/admin", requireAdmin, (req, res) => {
-  if (trim(req.query.q)) {
-    return res.redirect("/admin/leads?q=" + encodeURIComponent(trim(req.query.q)));
-  }
-  const stats = dbmod.dashboardStats(db);
-  res.type("html").send(views.dashboardPage({ stats, chrome: chrome() }));
-});
-
-function leadFilters(query) {
-  const status = trim(query.status);
-  const priority = trim(query.priority);
-  const range = trim(query.range);
-  return {
-    status: dbmod.STATUSES.includes(status) ? status : "",
-    priority: ["Hot", "Warm", "Cold"].includes(priority) ? priority : "",
-    open: query.open === "1",
-    pipeline: query.pipeline === "1",
-    range: range === "today" || range === "month" ? range : "",
-  };
-}
-
-function leadFilterLabel(filters) {
-  if (filters.range === "today") return "new leads today";
-  if (filters.open && filters.priority === "Hot") return "open Hot leads";
-  if (filters.pipeline) return "leads in the pipeline";
-  if (filters.status === "Won" && filters.range === "month") return "leads won this month";
-  const bits = [];
-  if (filters.status) bits.push("status " + filters.status);
-  if (filters.priority) bits.push(filters.priority + " priority");
-  if (filters.open) bits.push("open leads");
-  if (filters.range === "month") bits.push("received this month");
-  return bits.join(", ");
-}
-
-app.get("/admin/leads", requireAdmin, (req, res) => {
-  const query = trim(req.query.q);
-  const filters = leadFilters(req.query);
-  const leads = dbmod.listLeads(db, query, filters);
-  const count = dbmod.countLeads(db);
-  res.type("html").send(
-    views.listPage({
-      leads,
-      query,
-      count,
-      chrome: chrome(),
-      filterLabel: leadFilterLabel(filters),
-    })
-  );
-});
-
-function renderDetail(res, lead, extra) {
-  const notes = dbmod.getNotes(db, lead.id);
-  const tasks = dbmod.listTasksForLead(db, lead.id);
-  res.type("html").send(views.detailPage({ lead, notes, tasks, chrome: chrome(), ...extra }));
-}
-
-app.get("/admin/leads/:id", requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const lead = dbmod.getLead(db, id);
-  if (!lead) return res.status(404).type("html").send(views.notFoundPage());
-  renderDetail(res, lead);
-});
-
-app.post("/admin/leads/:id/status", requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const lead = dbmod.getLead(db, id);
-  if (!lead) return res.status(404).type("html").send(views.notFoundPage());
-  const status = trim(req.body && req.body.status);
-  if (!dbmod.STATUSES.includes(status)) {
-    res.status(400);
-    return renderDetail(res, lead, { error: "Choose a valid status." });
-  }
-  dbmod.updateStatus(db, id, status);
-  res.redirect("/admin/leads/" + id);
-});
-
-app.post("/admin/leads/:id/notes", requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const lead = dbmod.getLead(db, id);
-  if (!lead) return res.status(404).type("html").send(views.notFoundPage());
-  const body = trim(req.body && req.body.body);
-  if (!body) {
-    res.status(400);
-    return renderDetail(res, lead, { error: "Enter a note before saving." });
-  }
-  dbmod.addNote(db, id, body);
-  res.redirect("/admin/leads/" + id);
-});
-
-app.post("/admin/leads/:id/rescore", requireAdmin, async (req, res) => {
-  const id = Number(req.params.id);
-  const lead = dbmod.getLead(db, id);
-  if (!lead) return res.status(404).type("html").send(views.notFoundPage());
-  const result = await scorer.scoreLeadMaybeAi(lead);
-  dbmod.saveScore(db, id, result);
-  res.redirect("/admin/leads/" + id);
-});
-
-app.get("/admin/notifications", requireAdmin, (req, res) => {
-  res.type("html").send(
-    views.notificationsPage({
-      notifications: dbmod.listNotifications(db),
-      chrome: chrome(),
-      inboxOpen: req.query.open === "1",
-    })
-  );
-});
-
-app.get("/admin/notifications/:id/open", requireAdmin, (req, res) => {
-  const item = dbmod.getNotification(db, Number(req.params.id));
-  if (!item) return res.redirect("/admin/notifications");
-  dbmod.markNotificationRead(db, item.id);
-  if (item.lead_id) return res.redirect("/admin/leads/" + item.lead_id);
-  return res.redirect("/admin/notifications");
-});
-
-app.post("/admin/notifications/read-all", requireAdmin, (req, res) => {
-  dbmod.markAllNotificationsRead(db);
-  const back = (req.get("referer") || "").includes("/admin") ? req.get("referer") : "/admin/notifications";
-  res.redirect(back);
-});
-
-app.get("/admin/emails", requireAdmin, (req, res) => {
-  res.type("html").send(views.emailLogPage({ emails: dbmod.listEmails(db), chrome: chrome() }));
-});
-
-app.get("/admin/tasks", requireAdmin, (req, res) => {
-  res.type("html").send(views.tasksPage({ tasks: dbmod.listTasks(db), chrome: chrome() }));
-});
-
-app.post("/admin/leads/:id/tasks", requireAdmin, (req, res) => {
-  const id = Number(req.params.id);
-  const lead = dbmod.getLead(db, id);
-  if (!lead) return res.status(404).type("html").send(views.notFoundPage());
-  const title = trim(req.body && req.body.title);
-  const due = workflow.parseDenverInput(req.body && req.body.due_at);
-  if (!title || !due) {
-    res.status(400);
-    return renderDetail(res, lead, { error: "Enter a task title and a valid due date." });
-  }
-  dbmod.insertTask(db, {
-    lead_id: id,
-    title,
-    due_at: due.toISOString(),
-    created_at: new Date().toISOString(),
-  });
-  res.redirect("/admin/leads/" + id);
-});
-
-app.post("/admin/tasks/:id/complete", requireAdmin, (req, res) => {
-  const task = dbmod.getTask(db, Number(req.params.id));
-  if (!task) return res.redirect("/admin/tasks");
-  dbmod.completeTask(db, task.id);
-  res.redirect(safeNext(req, task.lead_id ? "/admin/leads/" + task.lead_id : "/admin/tasks"));
-});
-
-app.post("/admin/tasks/:id/snooze", requireAdmin, (req, res) => {
-  const task = dbmod.getTask(db, Number(req.params.id));
-  if (!task) return res.redirect("/admin/tasks");
-  const amount = trim(req.body && req.body.amount);
-  const hours = amount === "1d" ? 24 : 1;
-  const due = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-  dbmod.snoozeTask(db, task.id, due);
-  res.redirect(safeNext(req, "/admin/tasks"));
-});
-
-app.use((req, res) => {
-  res.status(404).type("html").send(views.notFoundPage());
-});
-
-const server = app.listen(PORT, HOST, () => {
-  console.log(`Summit Ridge lead form: http://localhost:${PORT}/`);
-  console.log(`Dashboard: http://localhost:${PORT}/admin`);
-  console.log(`Leads: http://localhost:${PORT}/admin/leads`);
-  workflow.flagOverdueTasks(dbmod, db);
-  setInterval(() => {
-    try {
-      workflow.flagOverdueTasks(dbmod, db);
-    } catch (err) {
-      console.error("overdue check failed", err);
-    }
-  }, 30000).unref();
-});
-
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} is in use. Set PORT to a free port and retry.`);
-  } else {
-    console.error(err);
-  }
-  process.exit(1);
-});
+"use strict";
+const path=require("path"),express=require("express"),session=require("express-session"),PgSession=require("connect-pg-simple")(session),crypto=require("crypto");
+const dbmod=require("./db-postgres"),views=require("./views"),scorer=require("./ai/leadScorer"),workflow=require("./workflow-postgres");
+const PORT=Number(process.env.PORT)||3847,HOST="0.0.0.0",PROD=process.env.NODE_ENV==="production",USER=process.env.ADMIN_USERNAME||(PROD?"": "admin"),PASS=process.env.ADMIN_PASSWORD||"",SECRET=process.env.SESSION_SECRET||"";
+if(PROD&&(!USER||PASS.length<16||SECRET.length<32))throw Error("Set ADMIN_USERNAME, ADMIN_PASSWORD (16+ chars), and SESSION_SECRET (32+ chars).");
+const app=express(),attempts=new Map();let db;
+app.disable("x-powered-by");if(PROD)app.set("trust proxy",1);
+app.use(express.urlencoded({extended:false,limit:"20kb"}));
+app.use(session({name:"roof.sid",secret:SECRET||"local-development-session-secret-change-me",store:new PgSession({pool:dbmod.pool,tableName:"sessions",createTableIfMissing:false}),resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:"lax",secure:PROD,maxAge:8*60*60*1000}}));
+app.use(express.static(path.join(__dirname,"public")));
+const trim=v=>String(v||"").trim(),safeNext=(req,fb)=>{const n=trim(req.body?.next);return n.startsWith("/admin")?n:fb;};
+function admin(req,res,next){if(req.session?.authenticated)return next();res.redirect("/admin/login?next="+encodeURIComponent(req.originalUrl||"/admin"));}
+async function chrome(){const [unread,overdueCount,notifications]=await Promise.all([dbmod.countUnreadNotifications(),dbmod.countOverdueTasks(),dbmod.listNotifications(null,8)]);return {unread,overdueCount,notifications};}
+const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/,ZIP=/^\d{5}(-\d{4})?$/,PHONE=/^[0-9+().\-\s]{7,30}$/;
+function validate(body){const v={};for(const k of ["full_name","phone","email","street","city","state","zip","property_type","roof_type","service_needed","issue_description","urgency","preferred_contact"])v[k]=trim(body[k]);v.state=v.state.toUpperCase();const e={};if(v.full_name.length<2)e.full_name="Enter your full name.";if(!PHONE.test(v.phone)||v.phone.replace(/\D/g,"").length<10)e.phone="Enter a valid US phone number.";if(!EMAIL.test(v.email))e.email="Enter a valid email address.";for(const k of ["street","city","state"])if(!v[k])e[k]="This field is required.";if(!dbmod.US_STATES.some(x=>x[0]===v.state))e.state="Select a valid state.";if(!ZIP.test(v.zip))e.zip="Enter a valid ZIP code.";for(const [k,a] of [["property_type",dbmod.PROPERTY_TYPES],["roof_type",dbmod.ROOF_TYPES],["service_needed",dbmod.SERVICES],["urgency",dbmod.URGENCIES],["preferred_contact",dbmod.CONTACT_METHODS]])if(!a.includes(v[k]))e[k]="Select a valid option.";if(v.issue_description.length<10)e.issue_description="Please add more detail.";return {values:v,errors:e,ok:!Object.keys(e).length};}
+app.get("/",(req,res)=>res.type("html").send(views.formPage()));
+app.post("/leads",async(req,res,next)=>{try{const x=validate(req.body||{});if(!x.ok)return res.status(400).type("html").send(views.formPage({values:x.values,errors:x.errors,banner:"Please fix the highlighted fields and try again."}));const info=await dbmod.insertLead(db,{...x.values,status:"New",created_at:new Date().toISOString()});let lead=await dbmod.getLead(db,info.id);const score=await scorer.scoreLeadMaybeAi(lead);await dbmod.saveScore(db,info.id,score);lead=await dbmod.getLead(db,info.id);await workflow.onNewLead(dbmod,db,lead);res.redirect("/thanks?id="+info.id);}catch(e){next(e);}});
+app.get("/thanks",(req,res)=>res.type("html").send(views.thanksPage()));
+app.get("/admin/login",(req,res)=>{if(req.session?.authenticated)return res.redirect("/admin");res.type("html").send(views.loginPage());});
+app.post("/admin/login",(req,res)=>{const ip=req.ip||"unknown",now=Date.now(),a=(attempts.get(ip)||[]).filter(t=>now-t<900000);if(a.length>=10){attempts.set(ip,a);return res.status(429).send(views.loginPage({error:"Too many attempts. Try again in 15 minutes."}));}const u=trim(req.body?.username),p=Buffer.from(String(req.body?.password||"")),expected=Buffer.from(PASS||(PROD?"":"local-dev-only-change-me"));const ok=u===USER&&p.length===expected.length&&crypto.timingSafeEqual(p,expected);if(!ok){a.push(now);attempts.set(ip,a);return res.status(401).type("html").send(views.loginPage({error:"Invalid username or password."}));}attempts.delete(ip);req.session.regenerate(err=>{if(err)return res.status(500).send("Unable to start secure session.");req.session.authenticated=true;req.session.save(err2=>err2?res.status(500).send("Unable to save session."):res.redirect(trim(req.query.next).startsWith("/admin")?req.query.next:"/admin"));});});
+app.post("/admin/logout",(req,res)=>req.session.destroy(()=>res.redirect("/admin/login")));
+app.get("/admin",admin,async(req,res,next)=>{try{if(trim(req.query.q))return res.redirect("/admin/leads?q="+encodeURIComponent(trim(req.query.q)));const [stats,c]=await Promise.all([dbmod.dashboardStats(),chrome()]);res.type("html").send(views.dashboardPage({stats,chrome:c}));}catch(e){next(e);}});
+function filters(q){return {status:dbmod.STATUSES.includes(trim(q.status))?trim(q.status):"",priority:["Hot","Warm","Cold"].includes(trim(q.priority))?trim(q.priority):"",open:q.open==="1",pipeline:q.pipeline==="1",range:["today","month"].includes(q.range)?q.range:""};}
+function filterLabel(f){if(f.range==="today")return "new leads today";if(f.open&&f.priority==="Hot")return "open Hot leads";if(f.pipeline)return "leads in the pipeline";if(f.status==="Won"&&f.range==="month")return "leads won this month";return [f.status?"status "+f.status:"",f.priority?f.priority+" priority":"",f.open?"open leads":"",f.range==="month"?"received this month":""].filter(Boolean).join(", ");}
+app.get("/admin/leads",admin,async(req,res,next)=>{try{const f=filters(req.query),[leads,count,c]=await Promise.all([dbmod.listLeads(db,trim(req.query.q),f),dbmod.countLeads(),chrome()]);res.type("html").send(views.listPage({leads,query:trim(req.query.q),count,chrome:c,filterLabel:filterLabel(f)}));}catch(e){next(e);}});
+async function detail(res,lead,extra){const [notes,tasks,c]=await Promise.all([dbmod.getNotes(db,lead.id),dbmod.listTasksForLead(db,lead.id),chrome()]);res.type("html").send(views.detailPage({lead,notes,tasks,chrome:c,...extra}));}
+app.get("/admin/leads/:id",admin,async(req,res,next)=>{try{const l=await dbmod.getLead(db,Number(req.params.id));if(!l)return res.status(404).send(views.notFoundPage());await detail(res,l);}catch(e){next(e);}});
+app.post("/admin/leads/:id/status",admin,async(req,res,next)=>{try{const id=Number(req.params.id),l=await dbmod.getLead(db,id),s=trim(req.body.status);if(!l)return res.status(404).send(views.notFoundPage());if(!dbmod.STATUSES.includes(s))return detail(res,l,{error:"Choose a valid status."});await dbmod.updateStatus(db,id,s);res.redirect("/admin/leads/"+id);}catch(e){next(e);}});
+app.post("/admin/leads/:id/notes",admin,async(req,res,next)=>{try{const id=Number(req.params.id),l=await dbmod.getLead(db,id),body=trim(req.body.body);if(!l)return res.status(404).send(views.notFoundPage());if(!body)return detail(res,l,{error:"Enter a note before saving."});await dbmod.addNote(db,id,body);res.redirect("/admin/leads/"+id);}catch(e){next(e);}});
+app.post("/admin/leads/:id/rescore",admin,async(req,res,next)=>{try{const id=Number(req.params.id),l=await dbmod.getLead(db,id);if(!l)return res.status(404).send(views.notFoundPage());await dbmod.saveScore(db,id,await scorer.scoreLeadMaybeAi(l));res.redirect("/admin/leads/"+id);}catch(e){next(e);}});
+app.get("/admin/notifications",admin,async(req,res,next)=>{try{const [notifications,c]=await Promise.all([dbmod.listNotifications(),chrome()]);res.type("html").send(views.notificationsPage({notifications,chrome:c,inboxOpen:req.query.open==="1"}));}catch(e){next(e);}});
+app.get("/admin/notifications/:id/open",admin,async(req,res,next)=>{try{const item=await dbmod.getNotification(db,Number(req.params.id));if(!item)return res.redirect("/admin/notifications");await dbmod.markNotificationRead(db,item.id);res.redirect(item.lead_id?"/admin/leads/"+item.lead_id:"/admin/notifications");}catch(e){next(e);}});
+app.post("/admin/notifications/read-all",admin,async(req,res,next)=>{try{await dbmod.markAllNotificationsRead();const back=(req.get("referer")||"").includes("/admin")?req.get("referer"):"/admin/notifications";res.redirect(back);}catch(e){next(e);}});
+app.get("/admin/emails",admin,async(req,res,next)=>{try{const [emails,c]=await Promise.all([dbmod.listEmails(),chrome()]);res.type("html").send(views.emailLogPage({emails,chrome:c}));}catch(e){next(e);}});
+app.get("/admin/tasks",admin,async(req,res,next)=>{try{const [tasks,c]=await Promise.all([dbmod.listTasks(),chrome()]);res.type("html").send(views.tasksPage({tasks,chrome:c}));}catch(e){next(e);}});
+app.post("/admin/leads/:id/tasks",admin,async(req,res,next)=>{try{const id=Number(req.params.id),l=await dbmod.getLead(db,id),title=trim(req.body.title),due=workflow.parseDenverInput(req.body.due_at);if(!l)return res.status(404).send(views.notFoundPage());if(!title||!due)return detail(res,l,{error:"Enter a task title and valid due date."});await dbmod.insertTask(db,{lead_id:id,title,due_at:due.toISOString(),created_at:new Date().toISOString()});res.redirect("/admin/leads/"+id);}catch(e){next(e);}});
+app.post("/admin/tasks/:id/complete",admin,async(req,res,next)=>{try{const t=await dbmod.getTask(db,Number(req.params.id));if(!t)return res.redirect("/admin/tasks");await dbmod.completeTask(db,t.id);res.redirect(safeNext(req,t.lead_id?"/admin/leads/"+t.lead_id:"/admin/tasks"));}catch(e){next(e);}});
+app.post("/admin/tasks/:id/snooze",admin,async(req,res,next)=>{try{const t=await dbmod.getTask(db,Number(req.params.id));if(!t)return res.redirect("/admin/tasks");const due=new Date(Date.now()+(req.body.amount==="1d"?86400000:3600000)).toISOString();await dbmod.snoozeTask(db,t.id,due);res.redirect(safeNext(req,"/admin/tasks"));}catch(e){next(e);}});
+app.use((req,res)=>res.status(404).type("html").send(views.notFoundPage()));
+app.use((err,req,res,next)=>{console.error("request failed",err);if(res.headersSent)return next(err);res.status(500).type("text").send("Something went wrong. Please try again.");});
+(async()=>{try{db=await dbmod.open();const server=app.listen(PORT,HOST,()=>console.log("Roofing CRM listening on "+PORT));await workflow.flagOverdueTasks(dbmod);setInterval(()=>workflow.flagOverdueTasks(dbmod).catch(e=>console.error("overdue check failed",e)),60000).unref();server.on("error",e=>{console.error(e);process.exit(1);});}catch(e){console.error("Startup failed:",e);process.exit(1);}})();

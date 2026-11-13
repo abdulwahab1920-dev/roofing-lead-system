@@ -154,7 +154,6 @@ function backfillNotificationsAndEmails(dbmod, db) {
 
 function backfillTasks(dbmod, db) {
   const leads = db.prepare("SELECT * FROM leads").all();
-  const now = Date.now();
   for (const lead of leads) {
     const has = db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE lead_id = ?").get(lead.id).n;
     if (has > 0) continue;
@@ -168,51 +167,6 @@ function backfillTasks(dbmod, db) {
       completed_at: completed,
       created_at: created,
     });
-  }
-
-  const overdue = db
-    .prepare(
-      `SELECT COUNT(*) AS n FROM tasks
-       WHERE completed_at IS NULL AND datetime(due_at) < datetime('now')`
-    )
-    .get().n;
-  if (overdue === 0) {
-    const row = db
-      .prepare(
-        `SELECT id FROM tasks WHERE completed_at IS NULL
-         ORDER BY datetime(due_at) ASC, id ASC LIMIT 1`
-      )
-      .get();
-    if (row) {
-      const past = new Date(now - 3 * 60 * 60 * 1000).toISOString();
-      db.prepare("UPDATE tasks SET due_at = ? WHERE id = ?").run(past, row.id);
-    }
-  }
-
-  const todayCount = db
-    .prepare(
-      `SELECT COUNT(*) AS n FROM tasks
-       WHERE completed_at IS NULL
-         AND date(due_at, 'localtime') = date('now', 'localtime')
-         AND datetime(due_at) >= datetime('now')`
-    )
-    .get().n;
-  if (todayCount === 0) {
-    const lead = db
-      .prepare(
-        `SELECT * FROM leads WHERE status IN ('Quoted', 'Contacted', 'New')
-         ORDER BY datetime(created_at) DESC LIMIT 1`
-      )
-      .get();
-    if (lead) {
-      const due = addHours(new Date(), 3).toISOString();
-      dbmod.insertTask(db, {
-        lead_id: lead.id,
-        title: `Check in on ${lead.full_name}`,
-        due_at: due,
-        created_at: new Date().toISOString(),
-      });
-    }
   }
 }
 

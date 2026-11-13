@@ -1,10 +1,6 @@
 "use strict";
 
-const net = require("net");
-const tls = require("tls");
-
-const DEFAULT_TO = "office@summitridgeroofing.com";
-const DEFAULT_FROM = "leads@summitridgeroofing.com";
+const COMPANY_NAME = process.env.COMPANY_NAME || "Your Roofing Company";
 
 function formatMoney(n) {
   if (n === null || n === undefined || n === "") return "n/a";
@@ -18,7 +14,7 @@ function composeLeadAlert(lead) {
   const category = lead.ai_category || "n/a";
   const subject = `New ${priority} lead: ${name}${lead.ai_category ? " — " + lead.ai_category : ""}`;
   const body = [
-    "A new lead was submitted on the Summit Ridge website.",
+    `A new lead was submitted on the ${COMPANY_NAME} website.`,
     "",
     `Name: ${name}`,
     `Phone: ${lead.phone || "—"}`,
@@ -42,96 +38,57 @@ function composeLeadAlert(lead) {
   return { subject, body };
 }
 
-function smtpCommand(socket, expected, payload) {
-  return new Promise((resolve, reject) => {
-    const onData = (buf) => {
-      const text = buf.toString();
-      const code = Number((text.match(/^(\d{3})/m) || [])[1]);
-      socket.off("error", onErr);
-      socket.off("data", onData);
-      if (expected && code !== expected) {
-        reject(new Error(`SMTP ${expected} expected, got: ${text.trim()}`));
-      } else {
-        resolve(text);
-      }
-    };
-    const onErr = (err) => {
-      socket.off("data", onData);
-      reject(err);
-    };
-    socket.once("data", onData);
-    socket.once("error", onErr);
-    if (payload != null) socket.write(payload);
-  });
-}
-
-async function sendViaSmtp({ from, to, subject, body }) {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure = process.env.SMTP_SECURE === "1" || port === 465;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const timeoutMs = 8000;
-
-  const socket = await new Promise((resolve, reject) => {
-    const s = secure
-      ? tls.connect({ host, port, servername: host }, () => resolve(s))
-      : net.connect({ host, port }, () => resolve(s));
-    s.setTimeout(timeoutMs, () => {
-      s.destroy();
-      reject(new Error("SMTP timeout"));
-    });
-    s.once("error", reject);
-  });
-
-  const write = (line, expected) => smtpCommand(socket, expected, line);
-  try {
-    await smtpCommand(socket, 220);
-    await write(`EHLO summitridge.local\r\n`, 250);
-    if (user && pass) {
-      await write("AUTH LOGIN\r\n", 334);
-      await write(Buffer.from(user).toString("base64") + "\r\n", 334);
-      await write(Buffer.from(pass).toString("base64") + "\r\n", 235);
-    }
-    await write(`MAIL FROM:<${from}>\r\n`, 250);
-    await write(`RCPT TO:<${to}>\r\n`, 250);
-    await write("DATA\r\n", 354);
-    const msg = [
-      `From: Summit Ridge Leads <${from}>`,
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      "MIME-Version: 1.0",
-      "Content-Type: text/plain; charset=utf-8",
-      "",
-      body,
-      ".",
-      "",
-    ].join("\r\n");
-    await write(msg, 250);
-    await write("QUIT\r\n", 221);
-    socket.end();
-  } catch (err) {
-    socket.destroy();
-    throw err;
-  }
-}
-
 async function deliver({ to, from, subject, body }) {
-  if (!process.env.SMTP_HOST) return { status: "logged" };
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return {
+      status: "logged",
+      error: "Email is not configured. Add RESEND_API_KEY, NOTIFY_EMAIL, and EMAIL_FROM in the hosting environment.",
+    };
+  }
+  if (!to || !from) {
+    return {
+      status: "logged-send-failed",
+      error: "Set NOTIFY_EMAIL and EMAIL_FROM before enabling email delivery.",
+    };
+  }
+
   try {
-    await sendViaSmtp({ from, to, subject, body });
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `${COMPANY_NAME} Leads <${from}>`,
+        to: [to],
+        subject,
+        text: body,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const reason = result.message || result.error || `Resend returned HTTP ${response.status}`;
+      return { status: "logged-send-failed", error: String(reason).slice(0, 500) };
+    }
     return { status: "sent" };
   } catch (err) {
-    return { status: "logged-send-failed", error: String(err.message || err).slice(0, 500) };
+    return {
+      status: "logged-send-failed",
+      error: String(err.message || err).slice(0, 500),
+    };
   }
 }
 
 async function sendLeadAlert(dbmod, db, lead, createdAt) {
-  const to = process.env.NOTIFY_EMAIL || process.env.SMTP_TO || DEFAULT_TO;
-  const from = process.env.SMTP_FROM || DEFAULT_FROM;
+  const to = process.env.NOTIFY_EMAIL || "";
+  const from = process.env.EMAIL_FROM || "";
   const { subject, body } = composeLeadAlert(lead);
   const result = await deliver({ to, from, subject, body });
-  dbmod.insertEmail(db, {
+  await dbmod.insertEmail(db, {
     to_addr: to,
     subject,
     body,
@@ -146,6 +103,4 @@ async function sendLeadAlert(dbmod, db, lead, createdAt) {
 module.exports = {
   composeLeadAlert,
   sendLeadAlert,
-  DEFAULT_TO,
-  DEFAULT_FROM,
 };
