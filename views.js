@@ -74,8 +74,7 @@ function logoMark() {
       <path d="M10 26 V16.5 L16 11.5 L22 16.5 V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
     </svg>
     <span class="logo-text">
-      <strong>Summit Ridge</strong>
-      <span>Roofing</span>
+      <strong>${escapeHtml(COMPANY_NAME)}</strong>
     </span>
   </span>`;
 }
@@ -437,7 +436,7 @@ function loginPage({ error } = {}) {
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
-  return layout({ title: "Sign in | ${escapeHtml(COMPANY_NAME)} CRM", body, admin: true });
+  return layout({ title: `Sign in | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function statusBadge(status) {
@@ -529,7 +528,7 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
     }
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Leads | ${escapeHtml(COMPANY_NAME)} CRM", body, admin: true });
+  return layout({ title: `Leads | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function aiPanel(lead) {
