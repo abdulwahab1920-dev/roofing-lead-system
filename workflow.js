@@ -154,7 +154,6 @@ function backfillNotificationsAndEmails(dbmod, db) {
 
 function backfillTasks(dbmod, db) {
   const leads = db.prepare("SELECT * FROM leads").all();
-  const now = Date.now();
   for (const lead of leads) {
     const has = db.prepare("SELECT COUNT(*) AS n FROM tasks WHERE lead_id = ?").get(lead.id).n;
     if (has > 0) continue;
@@ -169,8 +168,6 @@ function backfillTasks(dbmod, db) {
       created_at: created,
     });
   }
-
-
 }
 
 function flagOverdueTasks(dbmod, db) {
