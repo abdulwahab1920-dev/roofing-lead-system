@@ -3,8 +3,9 @@
 const net = require("net");
 const tls = require("tls");
 
-const DEFAULT_TO = "office@summitridgeroofing.com";
-const DEFAULT_FROM = "leads@summitridgeroofing.com";
+const COMPANY_NAME = process.env.COMPANY_NAME || "Your Roofing Company";
+const DEFAULT_TO = "";
+const DEFAULT_FROM = process.env.SMTP_FROM || "";
 
 function formatMoney(n) {
   if (n === null || n === undefined || n === "") return "n/a";
@@ -18,7 +19,7 @@ function composeLeadAlert(lead) {
   const category = lead.ai_category || "n/a";
   const subject = `New ${priority} lead: ${name}${lead.ai_category ? " — " + lead.ai_category : ""}`;
   const body = [
-    "A new lead was submitted on the Summit Ridge website.",
+    `A new lead was submitted on the ${COMPANY_NAME} website.`,
     "",
     `Name: ${name}`,
     `Phone: ${lead.phone || "—"}`,
@@ -97,7 +98,7 @@ async function sendViaSmtp({ from, to, subject, body }) {
     await write(`RCPT TO:<${to}>\r\n`, 250);
     await write("DATA\r\n", 354);
     const msg = [
-      `From: Summit Ridge Leads <${from}>`,
+      `From: ${COMPANY_NAME} Leads <${from}>`,
       `To: ${to}`,
       `Subject: ${subject}`,
       "MIME-Version: 1.0",
@@ -118,6 +119,7 @@ async function sendViaSmtp({ from, to, subject, body }) {
 
 async function deliver({ to, from, subject, body }) {
   if (!process.env.SMTP_HOST) return { status: "logged" };
+  if (!to || !from) return { status: "logged-send-failed", error: "Set SMTP_TO (or NOTIFY_EMAIL) and SMTP_FROM before enabling email delivery." };
   try {
     await sendViaSmtp({ from, to, subject, body });
     return { status: "sent" };
