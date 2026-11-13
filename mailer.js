@@ -88,7 +88,7 @@ async function sendLeadAlert(dbmod, db, lead, createdAt) {
   const from = process.env.EMAIL_FROM || "";
   const { subject, body } = composeLeadAlert(lead);
   const result = await deliver({ to, from, subject, body });
-  dbmod.insertEmail(db, {
+  await dbmod.insertEmail(db, {
     to_addr: to,
     subject,
     body,
