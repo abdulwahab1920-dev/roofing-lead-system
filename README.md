@@ -62,4 +62,4 @@ Lead notifications use the Resend HTTPS API. The application logs the email resu
 
 ## Current development status
 
-This branch is a separate migration track. It does not change the existing production branch or live Render service. The PostgreSQL runtime, PostgreSQL session store, Resend API sender, and CI integration test are now present. Deployment remains blocked until CI is green, a real Neon/Resend end-to-end test succeeds, and deployment is explicitly approved.
+This branch is a separate migration track. It does not change the existing production branch or live Render service. The PostgreSQL runtime, PostgreSQL session store, Resend API sender, and CI integration test are now present. The app has passed its PostgreSQL 16 CI integration test. Live Neon/Resend verification and environment configuration are the remaining deployment gates. This branch does not alter the existing live Render service.
