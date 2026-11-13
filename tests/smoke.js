@@ -6,7 +6,6 @@ const { mkdtemp, rm } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { randomInt } = require("node:crypto");
-const { Pool } = require("pg");
 
 async function waitForServer(url, child) {
   const deadline = Date.now() + 15000;
@@ -23,9 +22,6 @@ async function waitForServer(url, child) {
 
 (async () => {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for PostgreSQL smoke tests.");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  await pool.query("TRUNCATE sessions, emails, notifications, tasks, notes, leads RESTART IDENTITY CASCADE");
-  await pool.end();
   const directory = await mkdtemp(path.join(os.tmpdir(), "roofing-crm-smoke-"));
   const port = randomInt(41000, 59000);
   const base = `http://127.0.0.1:${port}`;
