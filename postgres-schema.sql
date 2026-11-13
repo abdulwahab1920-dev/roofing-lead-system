@@ -82,4 +82,3 @@ CREATE INDEX IF NOT EXISTS idx_leads_priority ON leads(ai_priority);
 CREATE INDEX IF NOT EXISTS idx_notes_lead_created ON notes(lead_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due_at);
-CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
