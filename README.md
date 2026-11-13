@@ -30,8 +30,9 @@ Optional:
 
 - `OPENAI_API_KEY`: enables OpenAI lead scoring refinement. Without it, the app uses transparent rule-based scoring.
 - `OPENAI_MODEL`: defaults to `gpt-4o-mini`.
+- `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, `SERVICE_AREA`: customer-specific public branding. Defaults are demo values; replace them before a client launch.
 - `SEED_DEMO_DATA=true`: explicitly seeds sample leads on a fresh database. Keep unset/false for production.
-- SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `NOTIFY_EMAIL` or `SMTP_TO`.
+- SMTP: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `NOTIFY_EMAIL` or `SMTP_TO`. Both sender and recipient must be configured; email is not delivered until SMTP is configured and tested.
 
 ## Render deployment checklist
 
@@ -51,3 +52,13 @@ Each submitted lead is first given a deterministic rule-based score. If `OPENAI_
 A new lead creates an in-app notification, a follow-up task, and an email log entry. Actual email delivery requires SMTP configuration. Overdue tasks are flagged by the periodic workflow check.
 
 Demo-only forced overdue tasks and artificial extra follow-ups have been removed. Existing valid tasks are not automatically modified or deleted.
+
+
+## Customer onboarding checklist
+
+- Set `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, and `SERVICE_AREA` to the customer's approved details.
+- Set `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SESSION_SECRET`, and `DB_PATH` on persistent storage.
+- Configure a real mailbox/provider with `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` (use `1` for implicit TLS/port 465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `SMTP_TO` (or `NOTIFY_EMAIL`).
+- Submit a controlled test lead and verify it appears in the CRM and that a test notification is received. Check the email log for the result.
+- Do not use the Summit Ridge demo identity, sample phone number, or example contact details for a customer's public launch.
+- Obtain the customer's approval before publishing their contact information or sending any real customer-facing messages.
