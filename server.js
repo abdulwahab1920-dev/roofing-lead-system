@@ -5,7 +5,6 @@ const dbmod = require("./db");
 const views = require("./views");
 const scorer = require("./ai/leadScorer");
 const workflow = require("./workflow");
-const SQLiteStore = require("connect-sqlite3")(session);
 const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT) || 3847;
@@ -24,6 +23,68 @@ const LOCAL_ADMIN_PASS = ADMIN_PASS || "local-dev-only-change-me";
 const loginAttempts = new Map();
 
 const db = dbmod.open();
+
+class BetterSqliteSessionStore extends session.Store {
+  constructor(database) {
+    super();
+    this.db = database;
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expires INTEGER NOT NULL
+      )
+    `);
+    this.readSession = this.db.prepare("SELECT sess, expires FROM sessions WHERE sid = ?");
+    this.writeSession = this.db.prepare(`
+      INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
+      ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expires = excluded.expires
+    `);
+    this.deleteSession = this.db.prepare("DELETE FROM sessions WHERE sid = ?");
+  }
+
+  get(sid, callback) {
+    try {
+      const row = this.readSession.get(sid);
+      if (!row) return callback(null, null);
+      if (row.expires <= Date.now()) {
+        this.deleteSession.run(sid);
+        return callback(null, null);
+      }
+      callback(null, JSON.parse(row.sess));
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  set(sid, sess, callback) {
+    try {
+      const cookie = sess.cookie || {};
+      const expires = cookie.expires
+        ? new Date(cookie.expires).getTime()
+        : Date.now() + (Number.isFinite(cookie.originalMaxAge) ? cookie.originalMaxAge : 8 * 60 * 60 * 1000);
+      this.writeSession.run(sid, JSON.stringify(sess), expires);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+
+  destroy(sid, callback) {
+    try {
+      this.deleteSession.run(sid);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+
+  touch(sid, sess, callback) {
+    this.set(sid, sess, callback);
+  }
+}
+
+const sessionStore = new BetterSqliteSessionStore(db);
 const app = express();
 
 app.disable("x-powered-by");
@@ -33,7 +94,7 @@ app.use(
   session({
     name: "sr.sid",
     secret: SESSION_SECRET || "local-development-session-secret-change-me",
-    store: new SQLiteStore({ db: "sessions.sqlite", dir: path.dirname(dbmod.DB_PATH), table: "sessions" }),
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: { httpOnly: true, sameSite: "lax", secure: IS_PRODUCTION, maxAge: 1000 * 60 * 60 * 8 },
