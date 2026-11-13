@@ -1,3 +1,8 @@
+const COMPANY_NAME = process.env.COMPANY_NAME || "Summit Ridge Roofing";
+const COMPANY_PHONE = process.env.COMPANY_PHONE || "(303) 555-0148";
+const COMPANY_LOCATION = process.env.COMPANY_LOCATION || "Denver, Colorado";
+const SERVICE_AREA = process.env.SERVICE_AREA || "Denver metro and Colorado Front Range";
+
 const {
   STATUSES,
   PROPERTY_TYPES,
@@ -243,7 +248,7 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
   </main>
   ${publicFooter()}`;
 
-  return layout({ title: "Request an Inspection | ${escapeHtml(COMPANY_NAME)}", body });
+  return layout({ title: `Request an Inspection | ${escapeHtml(COMPANY_NAME)}`, body });
 }
 
 function thanksPage() {
@@ -257,12 +262,12 @@ function thanksPage() {
     <section class="form-card thanks">
       <p class="eyebrow">Request received</p>
       <h1>Thank you. We’ll be in touch.</h1>
-      <p>Your inspection request has been saved. A Summit Ridge estimator will follow up by your preferred contact method, usually within one business day. If you reported an active leak, we’ll try to reach you sooner.</p>
+      <p>Your inspection request has been saved. The ${escapeHtml(COMPANY_NAME)} team will follow up by your preferred contact method, usually within one business day. If you reported an active leak, we’ll try to reach you sooner.</p>
       <p><a href="/" class="btn secondary">Submit another request</a></p>
     </section>
   </main>
   ${publicFooter()}`;
-  return layout({ title: "Request received | ${escapeHtml(COMPANY_NAME)}", body });
+  return layout({ title: `Request received | ${escapeHtml(COMPANY_NAME)}`, body });
 }
 
 function denverYmd(iso) {
@@ -687,7 +692,7 @@ function notificationsPage({ notifications, chrome, inboxOpen }) {
     ${items}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Notifications | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Notifications | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function emailLogPage({ emails, chrome }) {
@@ -716,7 +721,7 @@ function emailLogPage({ emails, chrome }) {
     ${rows}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Email log | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Email log | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function tasksPage({ tasks, chrome }) {
@@ -736,7 +741,7 @@ function tasksPage({ tasks, chrome }) {
     ${section("Completed", groups.completed.slice(0, 8), "No completed tasks yet.")}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Tasks | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Tasks | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function barRows(items, kind) {
@@ -889,7 +894,7 @@ function dashboardPage({ stats, chrome }) {
     </section>
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Dashboard | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Dashboard | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function notFoundPage() {
