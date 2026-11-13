@@ -27,7 +27,7 @@ The intended initial no-monthly-cost stack is:
 - Neon Free PostgreSQL for persistent lead, task, notification, and session data.
 - Resend Free API for email notifications over HTTPS (no SMTP ports required).
 
-**Important:** the PostgreSQL runtime adapter and end-to-end database migration are not complete yet. Do not connect this branch to the live Render service or use it for real customer data until the migration tests pass. The file `postgres-schema.sql` is the target database schema, not a substitute for the unfinished application adapter.
+**Important:** this branch now contains a PostgreSQL runtime and PostgreSQL-backed session store, with a CI integration test configured against PostgreSQL 16. It remains a draft until CI passes and a real Neon/Resend end-to-end test is completed. Do not connect it to the live Render service or use it for real customer data yet.
 
 ## Required production environment variables
 
@@ -62,4 +62,4 @@ Lead notifications use the Resend HTTPS API. The application logs the email resu
 
 ## Current development status
 
-This branch is a separate migration track. It does not change the existing production branch or live Render service. The Resend API sender and PostgreSQL schema are prepared; the application-wide PostgreSQL query/session adapter and corresponding CI coverage must be completed before deployment.
+This branch is a separate migration track. It does not change the existing production branch or live Render service. The PostgreSQL runtime, PostgreSQL session store, Resend API sender, and CI integration test are now present. Deployment remains blocked until CI is green, a real Neon/Resend end-to-end test succeeds, and deployment is explicitly approved.
