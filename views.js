@@ -77,7 +77,7 @@ function logoMark() {
 
 function publicFooter() {
   return `<footer class="site-footer">
-    <p>© 2026 Summit Ridge Roofing · Licensed &amp; insured · Denver, Colorado</p>
+    <p>© 2026 ${escapeHtml(COMPANY_NAME)} · Licensed &amp; insured · ${escapeHtml(COMPANY_LOCATION)}</p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -112,20 +112,20 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
       <div class="header-meta">
         <span>Licensed &amp; insured</span>
         <span class="dot"></span>
-        <span>(303) 555-0148</span>
+        <span>${escapeHtml(COMPANY_PHONE)}</span>
       </div>
     </div>
   </header>
 
   <main class="wrap page-grid">
     <section class="intro">
-      <p class="eyebrow">Free inspection · Front Range</p>
+      <p class="eyebrow">Free inspection · ${escapeHtml(SERVICE_AREA)}</p>
       <h1>Request a roofing inspection</h1>
-      <p class="lede">Tell us about your property and the issue. A Summit Ridge estimator will follow up by your preferred contact method, usually within one business day — sooner for active leaks.</p>
+      <p class="lede">Tell us about your property and the issue. The ${escapeHtml(COMPANY_NAME)} team will follow up by your preferred contact method, usually within one business day — sooner for active leaks.</p>
       <ul class="trust">
         <li>Residential and commercial roofs</li>
         <li>Repairs, replacements, and storm inspections</li>
-        <li>Serving the Denver metro and Colorado Front Range</li>
+        <li>Serving ${escapeHtml(SERVICE_AREA)}</li>
       </ul>
     </section>
 
@@ -143,7 +143,7 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
           <div class="two-col">
             <div class="field">
               <label for="phone">Phone</label>
-              <input id="phone" name="phone" type="tel" required maxlength="30" value="${v("phone")}" class="${invalid("phone")}" autocomplete="tel" placeholder="(303) 555-0148">
+              <input id="phone" name="phone" type="tel" required maxlength="30" value="${v("phone")}" class="${invalid("phone")}" autocomplete="tel" placeholder="${escapeHtml(COMPANY_PHONE)}">
               ${fieldError(errors, "phone")}
             </div>
             <div class="field">
@@ -243,7 +243,7 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
   </main>
   ${publicFooter()}`;
 
-  return layout({ title: "Request an Inspection | Summit Ridge Roofing", body });
+  return layout({ title: "Request an Inspection | ${escapeHtml(COMPANY_NAME)}", body });
 }
 
 function thanksPage() {
@@ -262,7 +262,7 @@ function thanksPage() {
     </section>
   </main>
   ${publicFooter()}`;
-  return layout({ title: "Request received | Summit Ridge Roofing", body });
+  return layout({ title: "Request received | ${escapeHtml(COMPANY_NAME)}", body });
 }
 
 function denverYmd(iso) {
@@ -432,7 +432,7 @@ function loginPage({ error } = {}) {
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
-  return layout({ title: "Sign in | Summit Ridge CRM", body, admin: true });
+  return layout({ title: "Sign in | ${escapeHtml(COMPANY_NAME)} CRM", body, admin: true });
 }
 
 function statusBadge(status) {
@@ -524,7 +524,7 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
     }
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Leads | Summit Ridge CRM", body, admin: true });
+  return layout({ title: "Leads | ${escapeHtml(COMPANY_NAME)} CRM", body, admin: true });
 }
 
 function aiPanel(lead) {
@@ -654,7 +654,7 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
   ${adminFooter()}`;
 
   return layout({
-    title: `${lead.full_name} | Summit Ridge CRM`,
+    title: `${lead.full_name} | ${escapeHtml(COMPANY_NAME)} CRM`,
     body,
     admin: true,
   });
