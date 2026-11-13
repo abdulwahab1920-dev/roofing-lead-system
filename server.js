@@ -16,6 +16,9 @@ const SESSION_SECRET = process.env.SESSION_SECRET || "";
 if (IS_PRODUCTION && (!ADMIN_USER || ADMIN_PASS.length < 16 || SESSION_SECRET.length < 32)) {
   throw new Error("Production requires ADMIN_USERNAME, ADMIN_PASSWORD (16+ chars), and SESSION_SECRET (32+ chars).");
 }
+if (IS_PRODUCTION && (!process.env.DB_PATH || !path.isAbsolute(dbmod.DB_PATH))) {
+  throw new Error("Production requires DB_PATH to point to an absolute path on persistent storage.");
+}
 if (!IS_PRODUCTION && !ADMIN_PASS) {
   console.warn("Using local development admin credentials. Set ADMIN_PASSWORD and SESSION_SECRET.");
 }
