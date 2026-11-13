@@ -58,7 +58,7 @@ async function waitForServer(url, child) {
       headers: { "x-forwarded-proto": "https" },
     });
     assert.equal(protectedPage.status, 302, "Admin dashboard should require login.");
-    assert.match(protectedPage.headers.get("location") || "", /admin\\/login/);
+    assert.match(protectedPage.headers.get("location") || "", /admin\/login/);
 
     const login = await fetch(base + "/admin/login", {
       method: "POST",
@@ -72,7 +72,7 @@ async function waitForServer(url, child) {
     assert.equal(login.status, 302, "Valid admin credentials should log in.");
     const setCookie = login.headers.get("set-cookie") || "";
     const cookie = setCookie.split(";")[0];
-    assert.match(cookie, /^sr\\.sid=/, "Login should issue a session cookie.");
+    assert.match(cookie, /^sr\.sid=/, "Login should issue a session cookie.");
 
     const dashboard = await fetch(base + "/admin", {
       headers: { cookie, "x-forwarded-proto": "https" },
@@ -101,7 +101,7 @@ async function waitForServer(url, child) {
       body: new URLSearchParams(leadData).toString(),
     });
     assert.equal(submission.status, 302, "Valid lead submission should be accepted.");
-    assert.match(submission.headers.get("location") || "", /^\\/thanks\\?id=/);
+    assert.match(submission.headers.get("location") || "", /^\/thanks\?id=/);
 
     const leadsPage = await fetch(base + "/admin/leads", {
       headers: { cookie, "x-forwarded-proto": "https" },
@@ -119,7 +119,7 @@ async function waitForServer(url, child) {
     });
     await rm(directory, { recursive: true, force: true });
     if (child.exitCode !== 0 && child.exitCode !== null) {
-      throw new Error(`Server exited with code ${child.exitCode}. Logs:\\n${logs}`);
+      throw new Error(`Server exited with code ${child.exitCode}. Logs:\n${logs}`);
     }
   }
 })().catch((err) => {
