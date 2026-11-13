@@ -11,7 +11,7 @@ const {
   URGENCIES,
   CONTACT_METHODS,
   US_STATES,
-} = require("./db");
+} = require("./db-postgres");
 
 function escapeHtml(value) {
   return String(value ?? "")
