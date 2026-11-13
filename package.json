@@ -1,0 +1,18 @@
+{
+  "name": "roofing-lead-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Part 1 — lead form and CRM for Summit Ridge Roofing",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.1.1",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0"
+  }
+}
