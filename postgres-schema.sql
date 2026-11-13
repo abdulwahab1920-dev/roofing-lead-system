@@ -70,11 +70,12 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-  sid TEXT PRIMARY KEY,
-  sess TEXT NOT NULL,
-  expires BIGINT NOT NULL
+  sid VARCHAR NOT NULL PRIMARY KEY,
+  sess JSON NOT NULL,
+  expire TIMESTAMP(6) NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
 CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 CREATE INDEX IF NOT EXISTS idx_leads_priority ON leads(ai_priority);
