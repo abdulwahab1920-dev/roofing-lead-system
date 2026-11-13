@@ -6,6 +6,7 @@ const { mkdtemp, rm } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { randomInt } = require("node:crypto");
+const { Pool } = require("pg");
 
 async function waitForServer(url, child) {
   const deadline = Date.now() + 15000;
@@ -21,6 +22,10 @@ async function waitForServer(url, child) {
 }
 
 (async () => {
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required for PostgreSQL smoke tests.");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  await pool.query("TRUNCATE sessions, emails, notifications, tasks, notes, leads RESTART IDENTITY CASCADE");
+  await pool.end();
   const directory = await mkdtemp(path.join(os.tmpdir(), "roofing-crm-smoke-"));
   const port = randomInt(41000, 59000);
   const base = `http://127.0.0.1:${port}`;
@@ -32,7 +37,7 @@ async function waitForServer(url, child) {
       ...process.env,
       NODE_ENV: "production",
       PORT: String(port),
-      DB_PATH: path.join(directory, "leads.db"),
+      DATABASE_URL: process.env.DATABASE_URL,
       ADMIN_USERNAME: username,
       ADMIN_PASSWORD: password,
       SESSION_SECRET: "smoke-test-session-secret-at-least-32-characters",
@@ -72,7 +77,7 @@ async function waitForServer(url, child) {
     assert.equal(login.status, 302, "Valid admin credentials should log in.");
     const setCookie = login.headers.get("set-cookie") || "";
     const cookie = setCookie.split(";")[0];
-    assert.match(cookie, /^sr\.sid=/, "Login should issue a session cookie.");
+    assert.match(cookie, /^roof\.sid=/, "Login should issue a session cookie.");
 
     const dashboard = await fetch(base + "/admin", {
       headers: { cookie, "x-forwarded-proto": "https" },
@@ -109,7 +114,7 @@ async function waitForServer(url, child) {
     assert.equal(leadsPage.status, 200, "Admin lead list should load after submission.");
     assert.match(await leadsPage.text(), /CI Smoke Test/, "Submitted lead should appear in the CRM.");
 
-    console.log("Smoke test passed: public form, protected admin, persistent login session, lead submission, CRM listing.");
+    console.log("Smoke test passed: public form, protected admin, PostgreSQL-backed login session, lead submission, CRM listing.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {
