@@ -5,10 +5,11 @@
   "description": "Part 1 — lead form and CRM for Summit Ridge Roofing",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/smoke.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
     "better-sqlite3": "^13.1.1",

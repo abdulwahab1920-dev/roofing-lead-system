@@ -5,25 +5,102 @@ const dbmod = require("./db");
 const views = require("./views");
 const scorer = require("./ai/leadScorer");
 const workflow = require("./workflow");
+const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT) || 3847;
 const HOST = "0.0.0.0";
-const ADMIN_USER = "admin";
-const ADMIN_PASS = "SummitRidge2026!";
-const SESSION_SECRET = process.env.SESSION_SECRET || "summit-ridge-part1-demo-secret";
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const ADMIN_USER = process.env.ADMIN_USERNAME || (IS_PRODUCTION ? "" : "admin");
+const ADMIN_PASS = process.env.ADMIN_PASSWORD || "";
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
+if (IS_PRODUCTION && (!ADMIN_USER || ADMIN_PASS.length < 16 || SESSION_SECRET.length < 32)) {
+  throw new Error("Production requires ADMIN_USERNAME, ADMIN_PASSWORD (16+ chars), and SESSION_SECRET (32+ chars).");
+}
+if (IS_PRODUCTION && (!process.env.DB_PATH || !path.isAbsolute(dbmod.DB_PATH))) {
+  throw new Error("Production requires DB_PATH to point to an absolute path on persistent storage.");
+}
+if (!IS_PRODUCTION && !ADMIN_PASS) {
+  console.warn("Using local development admin credentials. Set ADMIN_PASSWORD and SESSION_SECRET.");
+}
+const LOCAL_ADMIN_PASS = ADMIN_PASS || "local-dev-only-change-me";
+const loginAttempts = new Map();
 
 const db = dbmod.open();
+
+class BetterSqliteSessionStore extends session.Store {
+  constructor(database) {
+    super();
+    this.db = database;
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expires INTEGER NOT NULL
+      )
+    `);
+    this.readSession = this.db.prepare("SELECT sess, expires FROM sessions WHERE sid = ?");
+    this.writeSession = this.db.prepare(`
+      INSERT INTO sessions (sid, sess, expires) VALUES (?, ?, ?)
+      ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expires = excluded.expires
+    `);
+    this.deleteSession = this.db.prepare("DELETE FROM sessions WHERE sid = ?");
+  }
+
+  get(sid, callback) {
+    try {
+      const row = this.readSession.get(sid);
+      if (!row) return callback(null, null);
+      if (row.expires <= Date.now()) {
+        this.deleteSession.run(sid);
+        return callback(null, null);
+      }
+      callback(null, JSON.parse(row.sess));
+    } catch (err) {
+      callback(err);
+    }
+  }
+
+  set(sid, sess, callback) {
+    try {
+      const cookie = sess.cookie || {};
+      const expires = cookie.expires
+        ? new Date(cookie.expires).getTime()
+        : Date.now() + (Number.isFinite(cookie.originalMaxAge) ? cookie.originalMaxAge : 8 * 60 * 60 * 1000);
+      this.writeSession.run(sid, JSON.stringify(sess), expires);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+
+  destroy(sid, callback) {
+    try {
+      this.deleteSession.run(sid);
+      if (callback) callback(null);
+    } catch (err) {
+      if (callback) callback(err);
+    }
+  }
+
+  touch(sid, sess, callback) {
+    this.set(sid, sess, callback);
+  }
+}
+
+const sessionStore = new BetterSqliteSessionStore(db);
 const app = express();
 
 app.disable("x-powered-by");
+if (IS_PRODUCTION) app.set("trust proxy", 1);
 app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
     name: "sr.sid",
-    secret: SESSION_SECRET,
+    secret: SESSION_SECRET || "local-development-session-secret-change-me",
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: "lax", maxAge: 1000 * 60 * 60 * 8 },
+    cookie: { httpOnly: true, sameSite: "lax", secure: IS_PRODUCTION, maxAge: 1000 * 60 * 60 * 8 },
   })
 );
 app.use(express.static(path.join(__dirname, "public")));
@@ -142,11 +219,11 @@ app.post("/leads", async (req, res) => {
     created_at: new Date().toISOString(),
   });
   const leadId = info.lastInsertRowid;
-  const lead = dbmod.getLead(db, leadId);
+  let lead = dbmod.getLead(db, leadId);
+  const score = await scorer.scoreLeadMaybeAi(lead);
+  dbmod.saveScore(db, leadId, score);
+  lead = dbmod.getLead(db, leadId);
   await workflow.onNewLead(dbmod, db, lead);
-  if (process.env.OPENAI_API_KEY) {
-    scorer.scoreLeadMaybeAi(lead).then((result) => dbmod.saveScore(db, leadId, result)).catch(() => {});
-  }
   res.redirect("/thanks?id=" + leadId);
 });
 
@@ -160,14 +237,32 @@ app.get("/admin/login", (req, res) => {
 });
 
 app.post("/admin/login", (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const attempts = (loginAttempts.get(ip) || []).filter((time) => now - time < 15 * 60 * 1000);
+  if (attempts.length >= 10) {
+    loginAttempts.set(ip, attempts);
+    return res.status(429).type("html").send(views.loginPage({ error: "Too many attempts. Please try again in 15 minutes." }));
+  }
   const username = trim(req.body && req.body.username);
   const password = String((req.body && req.body.password) || "");
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    req.session.authenticated = true;
-    const next = trim(req.query.next || req.body.next || "");
-    const dest = next.startsWith("/admin") ? next : "/admin";
-    return res.redirect(dest);
+  const usernameOk = username === ADMIN_USER;
+  const passwordBuffer = Buffer.from(password);
+  const expectedBuffer = Buffer.from(LOCAL_ADMIN_PASS);
+  const passwordOk = passwordBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(passwordBuffer, expectedBuffer);
+  if (usernameOk && passwordOk) {
+    loginAttempts.delete(ip);
+    return req.session.regenerate((err) => {
+      if (err) return res.status(500).send("Unable to start a secure session. Please try again.");
+      req.session.authenticated = true;
+      const next = trim(req.query.next || req.body.next || "");
+      const dest = next.startsWith("/admin") ? next : "/admin";
+      req.session.save((saveErr) => saveErr ? res.status(500).send("Unable to save session.") : res.redirect(dest));
+    });
   }
+  attempts.push(now);
+  loginAttempts.set(ip, attempts);
   res.status(401).type("html").send(views.loginPage({ error: "Invalid username or password." }));
 });
 
