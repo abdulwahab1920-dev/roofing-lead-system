@@ -183,8 +183,10 @@ app.post("/admin/login", (req, res) => {
   const username = trim(req.body && req.body.username);
   const password = String((req.body && req.body.password) || "");
   const usernameOk = username === ADMIN_USER;
-  const passwordOk = password.length === LOCAL_ADMIN_PASS.length &&
-    crypto.timingSafeEqual(Buffer.from(password), Buffer.from(LOCAL_ADMIN_PASS));
+  const passwordBuffer = Buffer.from(password);
+  const expectedBuffer = Buffer.from(LOCAL_ADMIN_PASS);
+  const passwordOk = passwordBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(passwordBuffer, expectedBuffer);
   if (usernameOk && passwordOk) {
     loginAttempts.delete(ip);
     return req.session.regenerate((err) => {
