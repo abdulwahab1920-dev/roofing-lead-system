@@ -8,7 +8,7 @@ app.disable("x-powered-by");if(PROD)app.set("trust proxy",1);
 app.use(express.urlencoded({extended:false,limit:"20kb"}));
 app.use(session({name:"roof.sid",secret:SECRET||"local-development-session-secret-change-me",store:new PgSession({pool:dbmod.pool,tableName:"sessions",createTableIfMissing:false}),resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:"lax",secure:PROD,maxAge:8*60*60*1000}}));
 app.use(express.static(path.join(__dirname,"public")));
-app.use(express.static(path.join(__dirname,"new-form-design"),{index:false}));
+app.use("/form-assets",express.static(path.join(__dirname,"new-form-design"),{index:false}));
 const trim=v=>String(v||"").trim(),safeNext=(req,fb)=>{const n=trim(req.body?.next);return n.startsWith("/admin")?n:fb;};
 function admin(req,res,next){if(req.session?.authenticated)return next();res.redirect("/admin/login?next="+encodeURIComponent(req.originalUrl||"/admin"));}
 async function chrome(){const [unread,overdueCount,notifications]=await Promise.all([dbmod.countUnreadNotifications(),dbmod.countOverdueTasks(),dbmod.listNotifications(null,8)]);return {unread,overdueCount,notifications};}
