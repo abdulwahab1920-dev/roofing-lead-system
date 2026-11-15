@@ -393,3 +393,6 @@ input.invalid, select.invalid, textarea.invalid { border-color: #b42318; }
 @media (max-width: 640px) {
   .kpi-grid, .dash-grid { grid-template-columns: 1fr; }
 }
+
+/* Uploaded homeowner photos on the CRM lead detail page */
+.lead-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:14px}.lead-photos a{display:block;min-width:0;color:inherit;text-decoration:none}.lead-photos img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #d9dde4}.lead-photos span{display:block;margin-top:5px;font-size:12px;overflow-wrap:anywhere}
