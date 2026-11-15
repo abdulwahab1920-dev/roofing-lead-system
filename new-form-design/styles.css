@@ -8,6 +8,7 @@
   --ok:#2f6b3a; --err:#b42318; --err-bg:#fdf1ef;
   --radius:14px; --radius-lg:22px;
   --ctl:52px;                /* control height, above the 48px minimum */
+  --topbar-h:76px;
   --shadow:0 1px 2px rgba(18,28,51,.06),0 18px 50px -12px rgba(18,28,51,.28);
   --serif:"Fraunces",Georgia,serif; --sans:"Jakarta","Segoe UI",system-ui,sans-serif;
   --focus:0 0 0 3px var(--paper),0 0 0 6px var(--navy);
@@ -30,19 +31,20 @@ a{color:inherit}
 .ph-note{font-size:13px;color:var(--muted);margin:10px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .ph-note.center{justify-content:center}
 
-/* top bar */
-.topbar{position:absolute;inset:0 0 auto 0;z-index:5;color:#fff}
-.topbar-inner{display:flex;align-items:center;justify-content:space-between;height:76px}
-.brand{display:flex;align-items:center;gap:10px;font-size:17px;letter-spacing:.01em}
-.brand-mark{width:34px;height:34px;color:var(--copper-soft);stroke:none}
-.call-link{display:flex;align-items:center;gap:10px;text-decoration:none;min-height:48px;padding:6px 14px 6px 12px;border-radius:999px;background:rgba(18,28,51,.55);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(6px)}
+/* top bar: in normal flow, then pulled over the hero so the demo banner stays above it */
+.topbar{position:relative;z-index:5;color:#fff;height:var(--topbar-h);margin-bottom:calc(-1 * var(--topbar-h))}
+.topbar-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;height:var(--topbar-h)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;font-size:17px;letter-spacing:.01em}
+.brand-mark{width:34px;height:34px;color:var(--copper-soft);stroke:none;flex:0 0 auto}
+.call-link,.demo-badge{display:flex;align-items:center;gap:10px;text-decoration:none;min-height:48px;padding:6px 14px 6px 12px;border-radius:999px;background:rgba(18,28,51,.55);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(6px);flex:0 0 auto;color:#fff}
 .call-link:hover{background:rgba(18,28,51,.75)}
 .call-link>svg{color:var(--copper-soft)}
 .call-text{display:flex;align-items:center;gap:8px}
 .call-num{font-weight:700;font-variant-numeric:tabular-nums}
+.demo-badge{cursor:default;font-weight:700}
 
 /* hero */
-.hero{position:relative;padding:120px 0 72px;color:#fff;isolation:isolate}
+.hero{position:relative;padding:calc(var(--topbar-h) + 44px) 0 72px;color:#fff;isolation:isolate}
 .hero-photo{position:absolute;inset:0;z-index:-1;background:
   linear-gradient(90deg,rgba(18,28,51,.94) 0%,rgba(18,28,51,.82) 38%,rgba(18,28,51,.35) 70%,rgba(18,28,51,.55) 100%),
   linear-gradient(0deg,rgba(18,28,51,.85),rgba(18,28,51,0) 35%),
@@ -239,14 +241,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var
 }
 /* ---------- mobile ---------- */
 @media (max-width:640px){
+  :root{--topbar-h:60px}
   .wrap{width:calc(100% - 32px)}
-  .topbar-inner{height:64px}
   .brand strong{font-size:15px}
   .brand-mark{width:28px;height:28px}
-  .call-link{padding:6px 12px}
-  .call-num{display:none}
-  .call-text::before{content:"Call";font-weight:700}
-  .hero{padding:76px 0 0;color:#fff}
+  .call-link,.demo-badge{padding:6px 12px}
+  .hero{padding:calc(var(--topbar-h) + 8px) 0 0;color:#fff}
   .hero-photo{bottom:auto;height:330px;background:
     linear-gradient(180deg,rgba(18,28,51,.65) 0%,rgba(18,28,51,.75) 55%,var(--cream) 100%),
     url("assets/hero-roof-slate.jpg") 62% 30%/cover no-repeat}
@@ -288,7 +288,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var
 .seg-toggle span{min-height:48px}
 .btn:focus-visible,.linkbtn:focus-visible{box-shadow:var(--focus)}
 input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var(--navy);box-shadow:0 0 0 1px var(--navy),0 0 0 5px rgba(27,42,74,.25)}
-.call-link:focus-visible{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--copper-soft)}
+.call-link:focus-visible,.demo-badge:focus-visible{box-shadow:0 0 0 3px #fff,0 0 0 6px var(--copper-soft)}
 
 /* ===== v2 ===== */
 .call-box{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
@@ -315,14 +315,12 @@ h1 em{display:block}
 .sub-first{margin-top:0;margin-bottom:4px}
 .contact-fields{display:flex;flex-direction:column}
 @media (max-width:640px){
-  .topbar-inner{height:60px}
   .brand{gap:8px}
   .brand strong{font-size:14.5px}
   .brand-mark{width:26px;height:26px}
-  .call-box{gap:3px;margin-top:14px}
-  .call-link{min-height:44px;padding:4px 14px 4px 12px;gap:6px}
+  .call-box{gap:3px}
+  .call-link,.demo-badge{min-height:44px;padding:4px 14px 4px 12px;gap:6px}
   .call-num{display:none}
-  .call-text::before{content:none}
   .call-short{display:inline;font-weight:700}
   .call-link>svg{width:18px;height:18px}
   .hero-photo{height:340px;background:
@@ -342,10 +340,17 @@ h1 em{display:block}
     linear-gradient(180deg,rgba(18,28,51,.72) 0%,rgba(18,28,51,.6) 50%,rgba(18,28,51,.48) 80%,var(--cream) 100%),
     url("assets/hero-roof-slate.jpg") 62% 30%/cover no-repeat}
 }
-@media (max-width:640px){.call-link{min-height:48px;padding:4px 14px 4px 12px}}
+@media (max-width:640px){.call-link,.demo-badge{min-height:48px;padding:4px 14px 4px 12px}}
+@media (max-width:380px){.brand strong{font-size:13px}}
 
 /* Demo notice and lead photo gallery */
-.demo-notice{padding:10px 16px;background:#fff1d6;color:#68420b;text-align:center;font-size:12px;font-weight:800;letter-spacing:.04em}
+.demo-notice{position:relative;z-index:6;padding:10px 16px;background:#fff1d6;color:#68420b;text-align:center;font-size:12px;font-weight:800;letter-spacing:.04em;line-height:1.45;overflow-wrap:break-word}
+.demo-notice-short{display:none}
+@media (max-width:640px){
+  .demo-notice{padding:8px 12px;letter-spacing:.02em;font-weight:700}
+  .demo-notice-full{display:none}
+  .demo-notice-short{display:inline}
+}
 .lead-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:14px}
 .lead-photos a{display:block;min-width:0;color:inherit;text-decoration:none}
 .lead-photos img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #d9dde4}

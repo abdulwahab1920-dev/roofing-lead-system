@@ -9,7 +9,10 @@
 <body>
 <a class="skip" href="#lead-card">Skip to the request form</a>
 
-<div class="demo-notice">INTERACTIVE DEMO · Use fictional test details only · No real roofing company will contact you</div>
+<div class="demo-notice" data-demo-banner>
+  <span class="demo-notice-full">INTERACTIVE DEMO · Use fictional test details only · No real roofing company will contact you</span>
+  <span class="demo-notice-short">Demo: use test details only. No company will contact you.</span>
+</div>
 <header class="topbar">
   <div class="wrap topbar-inner">
     <span class="brand">
@@ -21,9 +24,11 @@
       <strong>Roofing Lead CRM Demo</strong>
     </span>
     <div class="call-box">
-    <span class="call-link" aria-label="Interactive demo; no real roofing phone number">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" fill="currentColor"/></svg>
-      <span class="call-text"><span class="call-num">Interactive demo</span><span class="call-short" aria-hidden="true">Demo</span></span>
+    <!-- Demo mode: text badge only. Customer mode with COMPANY_PHONE: replace with
+         <a class="call-link" href="tel:+1XXXXXXXXXX"><svg>...</svg><span class="call-text"><span class="call-num">...</span><span class="call-short">Call</span></span></a> -->
+    <span class="demo-badge" data-demo-badge aria-label="Interactive demo; no real roofing phone number">
+      <span class="call-num">Interactive demo</span>
+      <span class="call-short" aria-hidden="true">Demo</span>
     </span>
     </div>
   </div>

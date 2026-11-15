@@ -254,6 +254,32 @@ input.invalid, select.invalid, textarea.invalid { border-color: #b42318; }
 .login-card h1 { font-size: 1.8rem; }
 .login-card .powered { margin-top: 18px; text-align: center; }
 
+.password-field { position: relative; }
+.password-field input { padding-right: 3.5rem; }
+.password-toggle {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.password-toggle:hover { background: rgba(18, 28, 51, 0.06); }
+.password-toggle:focus-visible {
+  outline: 2px solid rgba(196, 92, 38, 0.55);
+  outline-offset: 0;
+}
+
 @media (max-width: 860px) {
   .page-grid, .detail-grid, .facts, .three-col, .two-col {
     grid-template-columns: 1fr;

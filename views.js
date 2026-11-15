@@ -443,9 +443,9 @@ function loginPage({ error } = {}) {
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <div class="password-field" style="position:relative">
-            <input id="password" name="password" type="password" required autocomplete="current-password" style="padding-right:3.25rem">
-            <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false" style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);border:0;background:transparent;color:inherit;cursor:pointer;padding:.4rem;display:grid;place-items:center">
+          <div class="password-field">
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password" aria-pressed="false">
               <svg id="password-eye" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
