@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Request a roof inspection | Sample Roofing Company</title>
+<title>Roofing Lead CRM Demo | Artific Creations</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,13 +17,13 @@
         <path d="M4 18 L16 7 L28 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
         <path d="M10 26 V16.5 L16 11.5 L22 16.5 V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
       </svg>
-      <strong>Sample Roofing Company</strong>
+      <strong>Roofing Lead CRM Demo</strong>
     </span>
     <div class="call-box">
-    <a class="call-link" href="tel:+15550100199" aria-label="Call (555) 010 0199, placeholder number">
+    <span class="call-link" aria-label="Interactive demo; no real roofing phone number">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" fill="currentColor"/></svg>
-      <span class="call-text"><span class="call-num">(555) 010 0199</span><span class="call-short" aria-hidden="true">Call</span></span>
-    </a>
+      <span class="call-text"><span class="call-num">Interactive demo</span><span class="call-short" aria-hidden="true">Demo</span></span>
+    </span>
     </div>
   </div>
 </header>
@@ -35,13 +35,13 @@
       <div class="hero-copy">
         <p class="eyebrow">Roof inspection request</p>
         <h1>Tell us about your roof. <em>We take it from there.</em></h1>
-        <p class="lede">Four short steps, about 60 seconds. A member of our team reads every request and calls you to book an inspection.</p>
+        <p class="lede">Explore the four-step homeowner request experience. This demo uses fictional information and does not contact a roofing company.</p>
         <ul class="trust">
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Residential and commercial roofs</li>
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Repairs, replacements and storm inspections</li>
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>We never sell your information</li>
-          <li class="ph-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6z"/></svg>License and insurance details <span class="ph-tag ph-dark">Placeholder</span></li>
-          <li class="ph-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Service area <span class="ph-tag ph-dark">Placeholder</span></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Test enquiries only</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No real homeowner contact</li>
         </ul>
       </div>
 
@@ -126,9 +126,9 @@
           <!-- STEP 2 -->
           <fieldset class="step" data-step="2" hidden>
             <legend class="step-title" tabindex="-1">Where is the property?</legend>
-            <p class="step-help">Start typing and pick your address from the list.</p>
+            <p class="step-help">Enter the property location manually.</p>
 
-            <div class="field" id="addr-field">
+            <div class="field" id="addr-field" hidden>
               <label for="address">Property address</label>
               <div class="combo">
                 <svg class="in-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
@@ -140,7 +140,7 @@
               <button type="button" class="linkbtn" id="manual-toggle" aria-expanded="false" aria-controls="manual-addr">Can't find it? Enter the address yourself</button>
             </div>
 
-            <div class="manual" id="manual-addr" hidden>
+            <div class="manual" id="manual-addr">
               <div class="field">
                 <label for="street">Street address</label>
                 <input id="street" name="street" type="text" maxlength="160" autocomplete="street-address" aria-describedby="street-msg">
@@ -252,7 +252,7 @@
                 <p class="field-msg" id="email-msg"></p>
               </div>
             </div>
-            <p class="consent">By sending this request, you agree that Sample Roofing Company may contact you about it using the method you choose. We never sell your information.</p>
+            <p class="consent">Demo only: use fictional contact details. This submission is stored in the demo CRM and no roofing company will contact you.</p>
           </fieldset>
 
           <!-- NAV (sticky on mobile) -->
@@ -271,16 +271,15 @@
         <div class="success" id="success" hidden tabindex="-1" aria-labelledby="success-title">
           <div class="success-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
           <h2 id="success-title">Thanks, <span id="s-name">there</span>. Your request is in.</h2>
-          <p class="s-lede">We will <span id="s-method">call</span> you at <strong id="s-contact"></strong> to book your inspection.</p>
-          <p class="s-window"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Callback window <span class="ph-tag">Placeholder</span></p>
+          <p class="s-lede">Your test request has been saved to the demo CRM. No real company will contact you.</p>
+          
           <p class="s-urgent" id="s-urgent" hidden><span class="pulse" aria-hidden="true"></span>Marked urgent. For water coming in now, please also call us.</p>
           <dl class="s-summary" id="s-summary"></dl>
           <p class="s-ref">Request reference <strong id="s-ref"></strong></p>
           <div class="s-actions">
-            <a class="btn btn-primary" href="tel:+15550100199">Call (555) 010 0199</a>
-            <button type="button" class="btn btn-ghost" id="restart">Start a new request</button>
+            <button type="button" class="btn btn-ghost" id="restart">Submit another test request</button>
           </div>
-          <p class="ph-note center"><span class="ph-tag">Placeholder</span> Phone number and callback window to be confirmed by the client.</p>
+          <p class="ph-note center">This is a demonstration using fictional details.</p>
         </div>
       </section>
     </div>
@@ -290,9 +289,9 @@
     <div class="wrap">
       <h2 id="next-title">What happens next</h2>
       <ol class="next-list">
-        <li><span class="num">1</span><div><strong>We read your request</strong><p>Your answers and photos go straight to our team, so nobody has to ask you twice.</p></div></li>
-        <li><span class="num">2</span><div><strong>We contact you to book a visit</strong><p>By call, text or email, the way you chose, at a time that suits you.</p><span class="ph-line"><span class="ph-tag">Placeholder</span>Callback window</span></div></li>
-        <li><span class="num">3</span><div><strong>You get a clear estimate</strong><p>After the inspection we explain what we found and what it would take.</p><span class="ph-line"><span class="ph-tag">Placeholder</span>Confirm estimate process</span></div></li>
+        <li><span class="num">1</span><div><strong>We read your request</strong><p>Your test answers and photos are saved with the demo lead record.</p></div></li>
+        <li><span class="num">2</span><div><strong>We contact you to book a visit</strong><p>The real roofing company can configure its preferred follow-up process.</p></div></li>
+        <li><span class="num">3</span><div><strong>You get a clear estimate</strong><p>After the inspection we explain what we found and what it would take.</p></div></li>
       </ol>
     </div>
   </section>
@@ -300,8 +299,8 @@
 
 <footer class="foot">
   <div class="wrap foot-inner">
-    <p>© 2026 Sample Roofing Company. Concept prototype, not connected to a live system.</p>
-    <p>Phone (555) 010 0199 <span class="ph-tag ph-dark">Placeholder</span> · Photo: Michaela St on Pexels</p>
+    <p>© 2026 Artific Creations. Roofing Lead CRM interactive demo.</p>
+    <p>Fictional test data only · No real roofing company contact details</p>
   </div>
 </footer>
 
