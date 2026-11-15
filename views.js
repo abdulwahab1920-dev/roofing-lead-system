@@ -337,16 +337,18 @@ function taskIsOverdue(task) {
 }
 
 function taskActions(task, next) {
-  if (task.completed_at) {
-    return `<span class="muted">Completed ${escapeHtml(formatDate(task.completed_at))}</span>`;
-  }
   const nextField = next
     ? `<input type="hidden" name="next" value="${escapeHtml(next)}">`
     : "";
+  const remove = `<form method="post" action="/admin/tasks/${task.id}/delete" onsubmit="return confirm('Delete this task permanently?')">${nextField}<button type="submit" class="btn small danger">Delete</button></form>`;
+  if (task.completed_at) {
+    return `<div class="task-actions"><span class="muted">Completed ${escapeHtml(formatDate(task.completed_at))}</span>${remove}</div>`;
+  }
   return `<div class="task-actions">
       <form method="post" action="/admin/tasks/${task.id}/complete">${nextField}<button type="submit" class="btn small">Complete</button></form>
       <form method="post" action="/admin/tasks/${task.id}/snooze">${nextField}<button type="submit" name="amount" value="1h" class="btn small ghost-dark">Snooze 1 hour</button></form>
       <form method="post" action="/admin/tasks/${task.id}/snooze">${nextField}<button type="submit" name="amount" value="1d" class="btn small ghost-dark">Snooze 1 day</button></form>
+      ${remove}
     </div>`;
 }
 
@@ -606,6 +608,9 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
           (n) => `<li>
             <p>${escapeHtml(n.body)}</p>
             <time>${escapeHtml(formatDate(n.created_at))}</time>
+            <form method="post" action="/admin/leads/${lead.id}/notes/${n.id}/delete" onsubmit="return confirm('Delete this note permanently?')">
+              <button type="submit" class="btn small danger">Delete note</button>
+            </form>
           </li>`
         )
         .join("")
@@ -622,7 +627,12 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
         <h1>${escapeHtml(lead.full_name)}</h1>
         <p class="muted">Received ${escapeHtml(formatDate(lead.created_at))}</p>
       </div>
-      <div class="head-badges">${priorityBadge(lead.ai_priority)} ${statusBadge(lead.status)}</div>
+      <div class="head-badges">
+        ${priorityBadge(lead.ai_priority)} ${statusBadge(lead.status)}
+        <form method="post" action="/admin/leads/${lead.id}/delete" onsubmit="return confirm('Delete this lead and its notes and follow-up tasks permanently?')">
+          <button type="submit" class="btn small danger">Delete lead</button>
+        </form>
+      </div>
     </div>
     ${err}
 
