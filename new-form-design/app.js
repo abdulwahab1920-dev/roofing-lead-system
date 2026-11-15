@@ -256,5 +256,4 @@
   });
 
   applyMethod();
-  window.__proto = { go, pick: i => { openList("ma"); pick(i); } };
 })();
