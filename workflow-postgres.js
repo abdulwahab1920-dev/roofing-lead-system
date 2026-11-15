@@ -1,8 +1,9 @@
 "use strict";
 const mailer=require("./mailer");
+const tz=require("./timezone");
 function addMinutes(d,n){return new Date(d.getTime()+n*60000)}
-function denverParts(date){const o={};for(const p of new Intl.DateTimeFormat("en-US",{timeZone:"America/Denver",weekday:"short",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date))o[p.type]=p.value;return o;}
-function fromDenver(y,m,d,h,mi){const g=new Date(Date.UTC(y,m-1,d,h,mi));const p={};for(const x of new Intl.DateTimeFormat("en-US",{timeZone:"America/Denver",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(g))p[x.type]=x.value;return new Date(g.getTime()-(Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-g.getTime()));}
+function denverParts(date){return tz.zoneParts(date,{weekday:"short",year:"numeric",month:"2-digit",day:"2-digit"});}
+function fromDenver(y,m,d,h,mi){return tz.fromZone(y,m,d,h,mi);}
 function addBusinessDays(date,n){let d=new Date(date),i=0;while(i<n){d=new Date(d.getTime()+86400000);const w=denverParts(d).weekday;if(w!=="Sat"&&w!=="Sun")i++;}return d;}
 function dueFromFollowup(f,from){const d=new Date(from),s=String(f||"").toLowerCase();if(s.includes("15 minute"))return addMinutes(d,15);if(s.includes("2 hour"))return addMinutes(d,120);if(s.includes("same business day")){const p=denverParts(d);return fromDenver(+p.year,+p.month,+p.day,17,0);}if(s.includes("2 business day"))return addBusinessDays(d,2);return addBusinessDays(d,1);}
 function taskTitle(l){return `${l.ai_priority==="Hot"||String(l.urgency||"").startsWith("Emergency")?"Call":"Follow up with"} ${l.full_name||"lead"}${l.ai_category?" — "+l.ai_category:""}`;}

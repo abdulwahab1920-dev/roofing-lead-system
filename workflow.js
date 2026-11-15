@@ -1,6 +1,7 @@
 "use strict";
 
 const mailer = require("./mailer");
+const { APP_TIMEZONE } = require("./timezone");
 
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60 * 1000);
@@ -12,7 +13,7 @@ function addHours(date, hours) {
 
 function denverParts(date) {
   const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     weekday: "short",
     year: "numeric",
     month: "2-digit",

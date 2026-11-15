@@ -1,6 +1,8 @@
 "use strict";
 const { Pool } = require("pg");
 const { scoreLead } = require("./ai/leadScorer");
+const tz = require("./timezone");
+function denverParts(date){return tz.zoneParts(date,{weekday:"short",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});}function fromDenver(y,m,d,h=0,mi=0){return tz.fromZone(y,m,d,h,mi);}
 const STATUSES=["New","Contacted","Quoted","Won","Lost"];
 const PROPERTY_TYPES=["Residential","Commercial"];
 const ROOF_TYPES=["Asphalt shingle","Metal","Tile","Flat","Other"];
@@ -22,8 +24,6 @@ async function deleteLead(db,id){const client=await pool.connect();try{await cli
 async function deleteNote(db,leadId,noteId){return q("DELETE FROM notes WHERE id=$1 AND lead_id=$2",[noteId,leadId]);}
 async function deleteTask(db,id){return q("DELETE FROM tasks WHERE id=$1",[id]);}
 async function listLeads(db,query,filters={}){const w=[],v=[];const add=(s,x)=>{v.push(x);w.push(s.replace("?", "$"+v.length));};if(query){const n=v.length+1;v.push("%"+query+"%");w.push("(full_name ILIKE $"+n+" OR phone ILIKE $"+n+" OR email ILIKE $"+n+")");}if(filters.status)add("status = ?",filters.status);if(filters.priority)add("ai_priority = ?",filters.priority);if(filters.open||filters.pipeline)w.push("status NOT IN ('Won','Lost')");const b=rangeBounds(filters.range);if(b){add("created_at >= ?",b.start);add("created_at < ?",b.end);}const r=await q("SELECT * FROM leads"+(w.length?" WHERE "+w.join(" AND "):"")+" ORDER BY created_at DESC,id DESC",v);return r.rows;}
-function denverParts(date){const p={};for(const x of new Intl.DateTimeFormat("en-US",{timeZone:"America/Denver",weekday:"short",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(date))p[x.type]=x.value;return p;}
-function fromDenver(y,m,d,h=0,mi=0){const g=new Date(Date.UTC(y,m-1,d,h,mi));const p=denverParts(g);const u=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);return new Date(g.getTime()-(u-g.getTime()));}
 function rangeBounds(range){const now=new Date(),p=denverParts(now);if(range==="today"){const s=fromDenver(+p.year,+p.month,+p.day);return {start:s.toISOString(),end:fromDenver(+p.year,+p.month,+p.day+1).toISOString()};}if(range==="month"){const s=fromDenver(+p.year,+p.month,1);const e=fromDenver(+p.year+(+p.month===12?1:0),+p.month===12?1:+p.month+1,1);return {start:s.toISOString(),end:e.toISOString()};}return null;}
 async function countLeads(){return Number((await q("SELECT count(*) n FROM leads")).rows[0].n);}
 async function countOverdueTasks(){return Number((await q("SELECT count(*) n FROM tasks WHERE completed_at IS NULL AND due_at::timestamptz < now()")).rows[0].n);}

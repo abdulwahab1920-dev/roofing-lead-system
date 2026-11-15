@@ -21,6 +21,7 @@ const {
   CONTACT_METHODS,
   US_STATES,
 } = require("./db-postgres");
+const { APP_TIMEZONE, timeZoneAbbr, ymd } = require("./timezone");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -34,21 +35,23 @@ function escapeHtml(value) {
 function formatDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(d);
+  const abbr = timeZoneAbbr(d);
+  return abbr ? `${formatted} ${abbr}` : formatted;
 }
 
 function formatDateShort(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -282,18 +285,7 @@ function thanksPage() {
 }
 
 function denverYmd(iso) {
-  const d = iso instanceof Date ? iso : new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const parts = {};
-  for (const p of new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d)) {
-    parts[p.type] = p.value;
-  }
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  return ymd(iso);
 }
 
 function formatDateTimeLocal(iso) {
@@ -301,7 +293,7 @@ function formatDateTimeLocal(iso) {
   if (Number.isNaN(d.getTime())) return "";
   const parts = {};
   for (const p of new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -863,7 +855,7 @@ function dashboardPage({ stats, chrome }) {
     <div class="page-head">
       <div>
         <h1 class="page-title">Dashboard</h1>
-        <p class="muted">${escapeHtml(new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()))} · America/Denver</p>
+        <p class="muted">${escapeHtml(new Intl.DateTimeFormat("en-US", { timeZone: APP_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()))} · ${escapeHtml(timeZoneAbbr())}</p>
       </div>
       <a class="btn small secondary" href="/admin/leads">View all leads</a>
     </div>

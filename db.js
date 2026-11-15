@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
+const { APP_TIMEZONE } = require("./timezone");
 
 const DATA_DIR = path.join(__dirname, "data");
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "leads.db");
@@ -413,7 +414,7 @@ function insertLead(db, lead) {
 function denverParts(date) {
   const parts = {};
   for (const p of new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     weekday: "short",
     year: "numeric",
     month: "2-digit",

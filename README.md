@@ -45,6 +45,7 @@ Optional:
 - `OPENAI_MODEL`: defaults to `gpt-4o-mini`.
 - `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, `SERVICE_AREA`: customer-specific public branding.
 - `SEED_DEMO_DATA=true`: explicitly seeds sample leads on a fresh database. Keep unset/false for production.
+- `APP_TIMEZONE`: IANA time zone for CRM dates, “today/this month” filters, and task due times. Defaults to `America/Denver` (Mountain Time). Examples: `America/Chicago`, `America/New_York`, `Asia/Karachi`, `UTC`. Times in the CRM include a short zone label such as MST, CST, or PKT.
 
 ## Email delivery
 
