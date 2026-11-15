@@ -337,12 +337,21 @@ h1 em{display:block}
 @media (max-width:640px){.call-box{margin-top:0}.call-ph{top:calc(100% + 3px)}}
 /* local scrim behind the copy only, so the rest of the photo stays bright */
 .hero-copy{position:relative}
-.hero-copy::before{content:"";position:absolute;z-index:-1;inset:-60px -80px -50px -120px;background:radial-gradient(ellipse at 40% 45%,rgba(18,28,51,.62) 0%,rgba(18,28,51,.5) 45%,rgba(18,28,51,0) 75%);pointer-events:none}
+/* soft local scrim: large inset + early fade + blur so the box never shows a hard edge */
+.hero-copy::before{content:"";position:absolute;z-index:-1;inset:-120px -240px -160px -200px;background:radial-gradient(ellipse 75% 70% at 32% 42%,rgba(18,28,51,.5) 0%,rgba(18,28,51,.28) 42%,rgba(18,28,51,0) 70%);filter:blur(36px);pointer-events:none}
 .hero .eyebrow,h1 em{color:#f6c9a6}
-@media (max-width:640px){.hero-copy::before{inset:-20px -16px -10px -16px;background:rgba(18,28,51,.32);border-radius:0;filter:blur(0)}}
+/* mobile: no boxed scrim (it left a visible hard-edged band); darken the full-width photo overlay instead */
+@media (max-width:640px){.hero-copy::before{display:none}}
+/* stacked tablet: keep the photo darker under the copy, but fade softly so no hard band appears */
+@media (max-width:1080px) and (min-width:641px){
+  .hero-photo{background:
+    linear-gradient(90deg,rgba(18,28,51,.92) 0%,rgba(18,28,51,.86) 58%,rgba(18,28,51,.72) 78%,rgba(18,28,51,.45) 90%,rgba(18,28,51,.16) 97%,rgba(18,28,51,0) 100%),
+    linear-gradient(180deg,rgba(18,28,51,.5) 0%,rgba(18,28,51,0) 26%),
+    url("assets/hero-roof-slate.jpg") 70% 30%/cover no-repeat}
+}
 @media (max-width:640px){
   .hero-photo{background:
-    linear-gradient(180deg,rgba(18,28,51,.72) 0%,rgba(18,28,51,.6) 50%,rgba(18,28,51,.48) 80%,var(--cream) 100%),
+    linear-gradient(180deg,rgba(18,28,51,.80) 0%,rgba(18,28,51,.72) 50%,rgba(18,28,51,.64) 80%,var(--cream) 100%),
     url("assets/hero-roof-slate.jpg") 62% 30%/cover no-repeat}
 }
 @media (max-width:640px){.call-link,.demo-badge{min-height:48px;padding:4px 14px 4px 12px}}
