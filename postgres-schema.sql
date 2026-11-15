@@ -31,6 +31,18 @@ CREATE TABLE IF NOT EXISTS leads (
   ai_source TEXT
 );
 
+CREATE TABLE IF NOT EXISTS lead_photos (
+  id BIGSERIAL PRIMARY KEY,
+  lead_id BIGINT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  data BYTEA NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_lead_photos_lead ON lead_photos(lead_id, id);
+
 CREATE TABLE IF NOT EXISTS notes (
   id BIGSERIAL PRIMARY KEY,
   lead_id BIGINT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
