@@ -343,3 +343,10 @@ h1 em{display:block}
     url("assets/hero-roof-slate.jpg") 62% 30%/cover no-repeat}
 }
 @media (max-width:640px){.call-link{min-height:48px;padding:4px 14px 4px 12px}}
+
+/* Demo notice and lead photo gallery */
+.demo-notice{padding:10px 16px;background:#fff1d6;color:#68420b;text-align:center;font-size:12px;font-weight:800;letter-spacing:.04em}
+.lead-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:14px}
+.lead-photos a{display:block;min-width:0;color:inherit;text-decoration:none}
+.lead-photos img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #d9dde4}
+.lead-photos span{display:block;margin-top:5px;font-size:12px;overflow-wrap:anywhere}
