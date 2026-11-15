@@ -441,7 +441,29 @@ function loginPage({ error } = {}) {
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" name="password" type="password" required autocomplete="current-password">
+          <div class="password-field" style="position:relative">
+            <input id="password" name="password" type="password" required autocomplete="current-password" style="padding-right:3.25rem">
+            <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false" style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);border:0;background:transparent;color:inherit;cursor:pointer;padding:.4rem;display:grid;place-items:center">
+              <svg id="password-eye" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <script>
+            (() => {
+              const field = document.getElementById("password");
+              const toggle = document.getElementById("toggle-password");
+              const eye = document.getElementById("password-eye");
+              if (!field || !toggle || !eye) return;
+              toggle.addEventListener("click", () => {
+                const showing = field.type === "password";
+                field.type = showing ? "text" : "password";
+                toggle.setAttribute("aria-label", showing ? "Hide password" : "Show password");
+                toggle.setAttribute("aria-pressed", String(showing));
+                eye.innerHTML = showing
+                  ? '<path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.1 3.8"/><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.2 0 2.3-.2 3.3-.6"/>'
+                  : '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>';
+              });
+            })();
+          </script>
         </div>
         <button type="submit" class="btn primary">Sign in</button>
       </form>
