@@ -56,8 +56,11 @@ async function waitForServer(url, child) {
     assert.match(formHtml, /Roofing Lead CRM Demo/);
     assert.match(formHtml, /INTERACTIVE DEMO/);
     assert.match(formHtml, /name="photos"/);
-    const formScript = await fetch(base + "/app.js");
+    const formScript = await fetch(base + "/form-assets/app.js");
     assert.equal(formScript.status, 200, "New form JavaScript should load.");
+    const formStyles = await fetch(base + "/form-assets/styles.css");
+    assert.equal(formStyles.status, 200, "New form stylesheet should load.");
+    assert.match(await formStyles.text(), /Fraunces/);
 
     const protectedPage = await fetch(base + "/admin", {
       redirect: "manual",
@@ -191,7 +194,33 @@ async function waitForServer(url, child) {
     });
     assert.equal(tooManyResponse.status, 400, "More than five images must be rejected.");
 
-        console.log("Smoke test passed: new form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage and authenticated photo display.");
+        const invalidPhotoForm = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Invalid Photo Test", phone: "(303) 555-0186", preferred_contact: "Phone",
+      street: "789 Photo Road", city: "Denver", state: "CO", zip: "80204",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week",
+    })) invalidPhotoForm.append(key, value);
+    invalidPhotoForm.append("photos", new Blob(["<svg></svg>"], { type: "image/svg+xml" }), "not-an-image.svg");
+    const invalidPhotoResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: invalidPhotoForm,
+    });
+    assert.equal(invalidPhotoResponse.status, 400, "Unsupported image formats must be rejected.");
+
+    const oversizedPhotoForm = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Oversized Photo Test", phone: "(303) 555-0185", preferred_contact: "Phone",
+      street: "789 Photo Road", city: "Denver", state: "CO", zip: "80204",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week",
+    })) oversizedPhotoForm.append(key, value);
+    oversizedPhotoForm.append("photos", new Blob([Buffer.alloc(5 * 1024 * 1024 + 1)], { type: "image/png" }), "too-large.png");
+    const oversizedResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: oversizedPhotoForm,
+    });
+    assert.equal(oversizedResponse.status, 400, "Images larger than 5 MB must be rejected.");
+
+        console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, and invalid/oversized upload rejection.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {
