@@ -596,7 +596,7 @@ function aiPanel(lead) {
     </section>`;
 }
 
-function detailPage({ lead, notes, error, tasks = [], chrome }) {
+function detailPage({ lead, notes, error, tasks = [], photos = [], chrome }) {
   const statusOptions = STATUSES.map(
     (s) =>
       `<option value="${escapeHtml(s)}"${lead.status === s ? " selected" : ""}>${escapeHtml(s)}</option>`
@@ -652,7 +652,9 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
           <div><dt>Urgency / timeline</dt><dd>${escapeHtml(lead.urgency)}</dd></div>
         </dl>
         <h3>Issue description</h3>
-        <p class="description">${escapeHtml(lead.issue_description)}</p>
+        <p class="description">${escapeHtml(lead.issue_description || "No details given")}</p>
+        <h3>Roof photos</h3>
+        ${photos.length ? `<div class="lead-photos">${photos.map((photo) => `<a href="/admin/leads/${lead.id}/photos/${photo.id}" target="_blank" rel="noopener"><img src="/admin/leads/${lead.id}/photos/${photo.id}" alt="${escapeHtml(photo.filename)}" loading="lazy"><span>${escapeHtml(photo.filename)}</span></a>`).join("")}</div>` : `<p class="muted">No photos uploaded.</p>`}
       </section>
 
       <aside class="side">
