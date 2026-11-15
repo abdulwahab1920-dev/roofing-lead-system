@@ -33,11 +33,7 @@
   /* ---------- validators (return error text or "") ---------- */
   const V = {
     service_needed: () => radio("service_needed") ? "" : "Choose what you need help with.",
-    address: () => {
-      if ($("#street").value.trim() && $("#city").value.trim() && $("#state").value && /^\d{5}$/.test(digits($("#zip").value).slice(0,5)) ) return "";
-      if (!$("#manual-addr").hidden) return "";
-      return $("#address").value.trim() ? "Pick your address from the list, or enter it yourself below." : "Enter the property address.";
-    },
+    address: () => !$("#street").value.trim() || !$("#city").value.trim() || !$("#state").value || !/^\d{5}$/.test(digits($("#zip").value)) ? "Enter a valid street, city, state and 5 digit ZIP code." : "",
     street: () => $("#street").value.trim().length >= 4 ? "" : "Enter the street and house number.",
     city: () => $("#city").value.trim() ? "" : "Enter the city.",
     state: () => $("#state").value ? "" : "Choose a state.",
@@ -65,7 +61,7 @@
   }
   function keysFor(n) {
     if (n === 1) return ["service_needed"];
-    if (n === 2) return ($("#manual-addr").hidden ? ["address"] : ["street", "city", "state", "zip"]).concat("roof_type");
+    if (n === 2) return ["street", "city", "state", "zip", "roof_type"];
     if (n === 3) return ["urgency"];
     return needsPhone() ? ["phone", "full_name", "email"] : ["email", "full_name", "phone"];
   }
@@ -146,67 +142,19 @@
       setTimeout(() => $("#urgent-panel").scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" }), 60); }
   }));
 
-  /* ---------- step 2: address combobox (demo data, no paid API) ---------- */
-  const DEMO = [
-    ["214 Maple Avenue", "Springfield", "IL", "62704"], ["2140 Maple Grove Road", "Columbus", "OH", "43215"],
-    ["21 Maplewood Drive", "Raleigh", "NC", "27603"], ["88 Oak Street", "Austin", "TX", "78704"],
-    ["880 Oakmont Lane", "Denver", "CO", "80203"], ["15 Cedar Court", "Tampa", "FL", "33602"],
-    ["1502 Cedar Ridge Drive", "Nashville", "TN", "37203"], ["47 Elm Street", "Portland", "OR", "97205"],
-    ["310 Birch Lane", "Charlotte", "NC", "28202"], ["9 Pine Hill Road", "Atlanta", "GA", "30303"]
-  ];
+  /* Manual address entry: no fabricated sample address suggestions. */
   const addr = $("#address"), list = $("#addr-list");
-  let active = -1, items = [];
-  const pin = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
-  function openList(q) {
-    q = q.trim().toLowerCase();
-    if (q.length < 2) return closeList();
-    const words = q.split(/\s+/);
-    items = DEMO.filter(a => words.every(w => a.join(" ").toLowerCase().includes(w))).slice(0, 4);
-    list.innerHTML = items.map((a, i) => `<li role="option" id="opt-${i}" aria-selected="false" data-i="${i}">${pin}<span><span class="s-main">${a[0]}</span><span class="s-sub">${a[1]}, ${a[2]} ${a[3]}</span></span></li>`).join("")
-      + (items.length ? "" : `<li class="s-foot" role="presentation">No match yet. Keep typing, or enter it yourself below.</li>`)
-      + `<li class="s-foot" role="presentation">Sample addresses for this prototype</li>`;
-    list.hidden = false; addr.setAttribute("aria-expanded", "true"); active = -1;
-  }
-  function closeList() { list.hidden = true; addr.setAttribute("aria-expanded", "false"); addr.removeAttribute("aria-activedescendant"); }
-  function pick(i) {
-    const a = items[i]; if (!a) return;
-    addr.value = `${a[0]}, ${a[1]}, ${a[2]} ${a[3]}`;
-    $("#street").value = a[0]; $("#city").value = a[1]; $("#state").value = a[2]; $("#zip").value = a[3];
-    closeList(); check("address"); $("#addr-field").classList.add("is-valid"); refreshSummary();
-    announce(`Address selected: ${addr.value}`);
-  }
-  addr.addEventListener("input", () => {
-    ["#street", "#city", "#zip"].forEach(s => ($(s).value = "")); $("#state").value = "";
-    $("#addr-field").classList.remove("is-valid");
-    openList(addr.value);
-    if (touched.has("address")) check("address");
-  });
-  addr.addEventListener("keydown", e => {
-    const opts = $$('li[role="option"]', list);
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault(); if (list.hidden) openList(addr.value);
-      active = (active + (e.key === "ArrowDown" ? 1 : -1) + opts.length) % opts.length;
-      opts.forEach((o, i) => o.setAttribute("aria-selected", i === active)); if (opts[active]) addr.setAttribute("aria-activedescendant", opts[active].id);
-    } else if (e.key === "Enter" && active > -1) { e.preventDefault(); pick(active); }
-    else if (e.key === "Escape") closeList();
-  });
-  list.addEventListener("mousedown", e => { const li = e.target.closest('li[role="option"]'); if (li) { e.preventDefault(); pick(+li.dataset.i); } });
-  addr.addEventListener("blur", () => setTimeout(() => { closeList(); if (addr.value.trim()) { touched.add("address"); check("address"); } }, 120));
-  $("#manual-toggle").addEventListener("click", () => {
-    const m = $("#manual-addr"), open = m.hidden;
-    m.hidden = !open; $("#manual-toggle").setAttribute("aria-expanded", open);
-    $("#manual-toggle").textContent = open ? "Use the address search instead" : "Can't find it? Enter the address yourself";
-    addr.disabled = open; $("#addr-field").classList.toggle("is-muted", open);
-    setMsg(addr, $("#address-msg"), "");
-    if (open) { if (!$("#street").value && addr.value && !addr.value.includes(",")) $("#street").value = addr.value; $("#street").focus(); }
-  });
+  $("#manual-addr").hidden = false; $("#addr-field").hidden = true; $("#manual-toggle").hidden = true; addr.disabled = true;
 
   /* ---------- step 3: counter + photos ---------- */
   const desc = $("#issue_description");
   desc.addEventListener("input", () => ($("#desc-count").textContent = `${desc.value.length} of 2000 characters`));
   const photos = $("#photos"), thumbs = $("#thumbs"); let files = [];
   photos.addEventListener("change", () => {
-    files = files.concat([...photos.files]).filter(f => f.type.startsWith("image/")).slice(0, 5); renderThumbs();
+    const incoming = [...photos.files];
+    if (incoming.some(f => !f.type.startsWith("image/") || f.size > 5 * 1024 * 1024)) announce("Use image files no larger than 5 megabytes each.");
+    files = files.concat(incoming.filter(f => f.type.startsWith("image/") && f.size <= 5 * 1024 * 1024)).slice(0, 5);
+    renderThumbs();
   });
   function renderThumbs() {
     thumbs.innerHTML = "";
@@ -268,34 +216,42 @@
   $("#back-btn").addEventListener("click", () => go(step - 1));
   form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "file" && e.target.id !== "address") { e.preventDefault(); $("#next-btn").click(); } });
   document.body.classList.add("form-active");
-  form.addEventListener("submit", e => { e.preventDefault(); $("#next-btn").click(); });
+  form.addEventListener("submit", e => { e.preventDefault(); if (step === TOTAL) { if (validateStep()) submit(); } else $("#next-btn").click(); });
 
-  /* ---------- submit (prototype: no network) ---------- */
-  function submit() {
-    /* To wire up: remove preventDefault and let the form POST to /leads, or send new FormData(form) with fetch. */
-    const name = $("#full_name").value.trim().split(/\s+/)[0];
-    const method = radio("preferred_contact");
-    $("#s-name").textContent = name;
-    $("#s-method").textContent = method === "Text" ? "text" : method === "Email" ? "email" : "call";
-    $("#s-contact").textContent = method === "Email" ? $("#email").value.trim() : $("#phone").value;
-    const urg = form.querySelector(`input[name="urgency"]:checked`).nextElementSibling.textContent;
-    const svc = form.querySelector(`input[name="service_needed"]:checked`).closest("label").querySelector("strong").textContent;
-    const roof = form.querySelector(`input[name="roof_type"]:checked`).closest("label").querySelector("strong").textContent;
-    const where = $("#street").value ? `${$("#street").value}, ${$("#city").value}, ${$("#state").value} ${$("#zip").value}` : addr.value;
-    const rows = [["Service", svc], ["Address", where], ["Roof", roof], ["Timing", urg]];
-    if (files.length) rows.push(["Photos", `${files.length} added`]);
-    $("#s-summary").innerHTML = rows.map(([a, b]) => `<dt>${a}</dt><dd>${b.replace(/</g, "&lt;")}</dd>`).join("");
-    $("#s-ref").textContent = "RL " + String(Date.now()).slice(-5) + " (demo)";
-    $("#s-urgent").hidden = !radio("urgency").startsWith("Emergency");
-    form.hidden = true; $("#progress-wrap").hidden = true;
-    $("#success").hidden = false; document.body.classList.add("done");
-    $("#lead-card").scrollIntoView({ block: "start" }); $("#success").focus({ preventScroll: true });
-    announce("Request sent. " + $("#success-title").textContent);
+  /* Submit to the real backend. Never display success until the server confirms. */
+  async function submit() {
+    const button = $("#next-btn"), label = $("#next-label"), oldLabel = label.textContent;
+    button.disabled = true; label.textContent = "Sending…";
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) {
+        const message = result.message || "We could not save this request. Please check your details and try again.";
+        $("#err-summary").hidden = false; $("#err-list").textContent = message; $("#err-summary").focus(); announce(message); return;
+      }
+      const name = $("#full_name").value.trim().split(/\s+/)[0] || "there";
+      $("#s-name").textContent = name;
+      const urg = form.querySelector('input[name="urgency"]:checked').nextElementSibling.textContent;
+      const svc = form.querySelector('input[name="service_needed"]:checked').closest("label").querySelector("strong").textContent;
+      const roof = form.querySelector('input[name="roof_type"]:checked').closest("label").querySelector("strong").textContent;
+      const where = $("#street").value + ", " + $("#city").value + ", " + $("#state").value + " " + $("#zip").value;
+      const rows = [["Service",svc],["Address",where],["Roof",roof],["Timing",urg]];
+      if (files.length) rows.push(["Photos",files.length + " uploaded"]);
+      const summary = $("#s-summary"); summary.replaceChildren();
+      rows.forEach(([k,v]) => { const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;summary.append(dt,dd);});
+      $("#s-ref").textContent = result.reference || ("RL-" + result.id);
+      $("#s-urgent").hidden = !radio("urgency").startsWith("Emergency");
+      form.hidden = true; $("#progress-wrap").hidden = true; $("#success").hidden = false; document.body.classList.add("done");
+      $("#lead-card").scrollIntoView({block:"start"}); $("#success").focus({preventScroll:true}); announce("Test request saved successfully.");
+    } catch (_) {
+      const message = "Network error. Your request was not confirmed as saved. Please try again.";
+      $("#err-summary").hidden = false; $("#err-list").textContent = message; $("#err-summary").focus(); announce(message);
+    } finally { button.disabled = false; label.textContent = oldLabel; }
   }
   $("#restart").addEventListener("click", () => {
     form.reset(); files = []; renderThumbs(); touched.clear();
     $$(".is-valid,.is-invalid").forEach(e => e.classList.remove("is-valid", "is-invalid")); $$(".field-msg").forEach(m => (m.textContent = ""));
-    $("#urgent-panel").hidden = true; $("#manual-addr").hidden = true; addr.disabled = false; applyMethod();
+    $("#urgent-panel").hidden = true; $("#manual-addr").hidden = false; $("#addr-field").hidden = true; $("#manual-toggle").hidden = true; addr.disabled = true; applyMethod();
     form.hidden = false; $("#progress-wrap").hidden = false; $("#success").hidden = true; document.body.classList.remove("done"); go(1);
   });
 
