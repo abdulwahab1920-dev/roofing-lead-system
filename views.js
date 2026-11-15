@@ -1,3 +1,17 @@
+const DEMO_MODE = process.env.DEMO_MODE !== "false";
+const COMPANY_NAME = DEMO_MODE
+  ? process.env.DEMO_COMPANY_NAME || "Sample Roofing Company"
+  : process.env.COMPANY_NAME || "Your Roofing Company";
+const COMPANY_PHONE = DEMO_MODE
+  ? process.env.DEMO_COMPANY_PHONE || ""
+  : process.env.COMPANY_PHONE || "";
+const COMPANY_LOCATION = DEMO_MODE
+  ? process.env.DEMO_COMPANY_LOCATION || ""
+  : process.env.COMPANY_LOCATION || "";
+const SERVICE_AREA = DEMO_MODE
+  ? process.env.DEMO_SERVICE_AREA || "Example service area"
+  : process.env.SERVICE_AREA || "Your local service area";
+
 const {
   STATUSES,
   PROPERTY_TYPES,
@@ -6,7 +20,7 @@ const {
   URGENCIES,
   CONTACT_METHODS,
   US_STATES,
-} = require("./db");
+} = require("./db-postgres");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -69,15 +83,14 @@ function logoMark() {
       <path d="M10 26 V16.5 L16 11.5 L22 16.5 V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
     </svg>
     <span class="logo-text">
-      <strong>Summit Ridge</strong>
-      <span>Roofing</span>
+      <strong>${escapeHtml(COMPANY_NAME)}</strong>
     </span>
   </span>`;
 }
 
 function publicFooter() {
   return `<footer class="site-footer">
-    <p>© 2026 Summit Ridge Roofing · Licensed &amp; insured · Denver, Colorado</p>
+    <p>© 2026 ${escapeHtml(COMPANY_NAME)}${COMPANY_LOCATION ? " · " + escapeHtml(COMPANY_LOCATION) : ""}</p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -110,22 +123,23 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
     <div class="wrap header-inner">
       ${logoMark()}
       <div class="header-meta">
-        <span>Licensed &amp; insured</span>
-        <span class="dot"></span>
-        <span>(303) 555-0148</span>
+        ${DEMO_MODE ? "<span>Interactive demo</span>" : ""}
+        ${COMPANY_PHONE ? (DEMO_MODE ? "" : '<span class="dot"></span>') + "<span>" + escapeHtml(COMPANY_PHONE) + "</span>" : ""}
       </div>
     </div>
   </header>
 
   <main class="wrap page-grid">
     <section class="intro">
-      <p class="eyebrow">Free inspection · Front Range</p>
+      <p class="eyebrow">${DEMO_MODE ? "Interactive demo · Sample lead form" : escapeHtml(SERVICE_AREA)}</p>
       <h1>Request a roofing inspection</h1>
-      <p class="lede">Tell us about your property and the issue. A Summit Ridge estimator will follow up by your preferred contact method, usually within one business day — sooner for active leaks.</p>
+      <p class="lede">${DEMO_MODE
+        ? "This is a demonstration form. Use fictional contact details; submissions appear in the sample CRM dashboard."
+        : "Tell us about your property and the issue. Our team will follow up by your preferred contact method."}</p>
       <ul class="trust">
         <li>Residential and commercial roofs</li>
         <li>Repairs, replacements, and storm inspections</li>
-        <li>Serving the Denver metro and Colorado Front Range</li>
+        <li>Serving ${escapeHtml(SERVICE_AREA)}</li>
       </ul>
     </section>
 
@@ -143,7 +157,7 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
           <div class="two-col">
             <div class="field">
               <label for="phone">Phone</label>
-              <input id="phone" name="phone" type="tel" required maxlength="30" value="${v("phone")}" class="${invalid("phone")}" autocomplete="tel" placeholder="(303) 555-0148">
+              <input id="phone" name="phone" type="tel" required maxlength="30" value="${v("phone")}" class="${invalid("phone")}" autocomplete="tel" placeholder="${escapeHtml(COMPANY_PHONE)}">
               ${fieldError(errors, "phone")}
             </div>
             <div class="field">
@@ -243,7 +257,7 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
   </main>
   ${publicFooter()}`;
 
-  return layout({ title: "Request an Inspection | Summit Ridge Roofing", body });
+  return layout({ title: `Request an Inspection | ${escapeHtml(COMPANY_NAME)}`, body });
 }
 
 function thanksPage() {
@@ -257,12 +271,14 @@ function thanksPage() {
     <section class="form-card thanks">
       <p class="eyebrow">Request received</p>
       <h1>Thank you. We’ll be in touch.</h1>
-      <p>Your inspection request has been saved. A Summit Ridge estimator will follow up by your preferred contact method, usually within one business day. If you reported an active leak, we’ll try to reach you sooner.</p>
+      <p>${DEMO_MODE
+        ? "Your sample request has been saved in the demonstration CRM. No roofing company will contact you."
+        : "Your inspection request has been saved. Our team will follow up by your preferred contact method."}</p>
       <p><a href="/" class="btn secondary">Submit another request</a></p>
     </section>
   </main>
   ${publicFooter()}`;
-  return layout({ title: "Request received | Summit Ridge Roofing", body });
+  return layout({ title: `Request received | ${escapeHtml(COMPANY_NAME)}`, body });
 }
 
 function denverYmd(iso) {
@@ -321,16 +337,18 @@ function taskIsOverdue(task) {
 }
 
 function taskActions(task, next) {
-  if (task.completed_at) {
-    return `<span class="muted">Completed ${escapeHtml(formatDate(task.completed_at))}</span>`;
-  }
   const nextField = next
     ? `<input type="hidden" name="next" value="${escapeHtml(next)}">`
     : "";
+  const remove = `<form method="post" action="/admin/tasks/${task.id}/delete" onsubmit="return confirm('Delete this task permanently?')">${nextField}<button type="submit" class="btn small danger">Delete</button></form>`;
+  if (task.completed_at) {
+    return `<div class="task-actions"><span class="muted">Completed ${escapeHtml(formatDate(task.completed_at))}</span>${remove}</div>`;
+  }
   return `<div class="task-actions">
       <form method="post" action="/admin/tasks/${task.id}/complete">${nextField}<button type="submit" class="btn small">Complete</button></form>
       <form method="post" action="/admin/tasks/${task.id}/snooze">${nextField}<button type="submit" name="amount" value="1h" class="btn small ghost-dark">Snooze 1 hour</button></form>
       <form method="post" action="/admin/tasks/${task.id}/snooze">${nextField}<button type="submit" name="amount" value="1d" class="btn small ghost-dark">Snooze 1 day</button></form>
+      ${remove}
     </div>`;
 }
 
@@ -425,14 +443,36 @@ function loginPage({ error } = {}) {
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" name="password" type="password" required autocomplete="current-password">
+          <div class="password-field" style="position:relative">
+            <input id="password" name="password" type="password" required autocomplete="current-password" style="padding-right:3.25rem">
+            <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false" style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);border:0;background:transparent;color:inherit;cursor:pointer;padding:.4rem;display:grid;place-items:center">
+              <svg id="password-eye" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <script>
+            (() => {
+              const field = document.getElementById("password");
+              const toggle = document.getElementById("toggle-password");
+              const eye = document.getElementById("password-eye");
+              if (!field || !toggle || !eye) return;
+              toggle.addEventListener("click", () => {
+                const showing = field.type === "password";
+                field.type = showing ? "text" : "password";
+                toggle.setAttribute("aria-label", showing ? "Hide password" : "Show password");
+                toggle.setAttribute("aria-pressed", String(showing));
+                eye.innerHTML = showing
+                  ? '<path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.1 3.8"/><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.2 0 2.3-.2 3.3-.6"/>'
+                  : '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>';
+              });
+            })();
+          </script>
         </div>
         <button type="submit" class="btn primary">Sign in</button>
       </form>
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
-  return layout({ title: "Sign in | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Sign in | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function statusBadge(status) {
@@ -524,7 +564,7 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
     }
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Leads | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Leads | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function aiPanel(lead) {
@@ -568,6 +608,9 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
           (n) => `<li>
             <p>${escapeHtml(n.body)}</p>
             <time>${escapeHtml(formatDate(n.created_at))}</time>
+            <form method="post" action="/admin/leads/${lead.id}/notes/${n.id}/delete" onsubmit="return confirm('Delete this note permanently?')">
+              <button type="submit" class="btn small danger">Delete note</button>
+            </form>
           </li>`
         )
         .join("")
@@ -584,7 +627,12 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
         <h1>${escapeHtml(lead.full_name)}</h1>
         <p class="muted">Received ${escapeHtml(formatDate(lead.created_at))}</p>
       </div>
-      <div class="head-badges">${priorityBadge(lead.ai_priority)} ${statusBadge(lead.status)}</div>
+      <div class="head-badges">
+        ${priorityBadge(lead.ai_priority)} ${statusBadge(lead.status)}
+        <form method="post" action="/admin/leads/${lead.id}/delete" onsubmit="return confirm('Delete this lead and its notes and follow-up tasks permanently?')">
+          <button type="submit" class="btn small danger">Delete lead</button>
+        </form>
+      </div>
     </div>
     ${err}
 
@@ -654,7 +702,7 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
   ${adminFooter()}`;
 
   return layout({
-    title: `${lead.full_name} | Summit Ridge CRM`,
+    title: `${lead.full_name} | ${escapeHtml(COMPANY_NAME)} CRM`,
     body,
     admin: true,
   });
@@ -687,7 +735,7 @@ function notificationsPage({ notifications, chrome, inboxOpen }) {
     ${items}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Notifications | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Notifications | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function emailLogPage({ emails, chrome }) {
@@ -716,7 +764,7 @@ function emailLogPage({ emails, chrome }) {
     ${rows}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Email log | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Email log | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function tasksPage({ tasks, chrome }) {
@@ -736,7 +784,7 @@ function tasksPage({ tasks, chrome }) {
     ${section("Completed", groups.completed.slice(0, 8), "No completed tasks yet.")}
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Tasks | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Tasks | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function barRows(items, kind) {
@@ -889,7 +937,7 @@ function dashboardPage({ stats, chrome }) {
     </section>
   </main>
   ${adminFooter()}`;
-  return layout({ title: "Dashboard | Summit Ridge CRM", body, admin: true });
+  return layout({ title: `Dashboard | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
 function notFoundPage() {

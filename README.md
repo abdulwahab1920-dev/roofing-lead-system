@@ -1,52 +1,65 @@
-# Summit Ridge Roofing — Lead Form & CRM (Parts 1–4)
+# Roofing Lead Form & CRM
 
-## How to run
+## Run locally
 
 ```bash
-cd /workspace/roofing-lead-system
 npm install
-npm start
+ADMIN_USERNAME=admin ADMIN_PASSWORD='use-a-long-local-password' SESSION_SECRET='replace-with-at-least-32-random-characters' npm start
 ```
 
-The app listens on `0.0.0.0:3847` (override with `PORT`).
+Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 
-## URLs
+## Routes
 
-- Public lead form: http://localhost:3847/
-- Thank-you page: http://localhost:3847/thanks
-- CRM login: http://localhost:3847/admin/login
-- Dashboard: http://localhost:3847/admin
-- CRM lead list: http://localhost:3847/admin/leads
-- Notifications: http://localhost:3847/admin/notifications
-- Follow-up tasks: http://localhost:3847/admin/tasks
-- Email log: http://localhost:3847/admin/emails
+- Public lead form: `/`
+- CRM login: `/admin/login`
+- Dashboard: `/admin`
+- Leads: `/admin/leads`
+- Notifications: `/admin/notifications`
+- Follow-up tasks: `/admin/tasks`
+- Email log: `/admin/emails`
 
-## Credentials
+## Free-tier hosting plan
 
-- Username: `admin`
-- Password: `SummitRidge2026!`
+The intended initial no-monthly-cost stack is:
 
-The SQLite database is created at `data/leads.db` and seeded with sample leads on first run if empty.
+- Render Free for the Node.js web service (may sleep when idle).
+- Neon Free PostgreSQL for persistent lead, task, notification, and session data.
+- Resend Free API for email notifications over HTTPS (no SMTP ports required).
 
+**Important:** this branch now contains a PostgreSQL runtime and PostgreSQL-backed session store, with a CI integration test configured against PostgreSQL 16. It remains a draft until CI passes and a real Neon/Resend end-to-end test is completed. Do not connect it to the live Render service or use it for real customer data yet.
 
-## Scoring
+## Required production environment variables
 
-New leads are scored automatically when the form is submitted. Existing leads are backfilled on startup if they have no score. A **Re-run scoring** button is on each lead detail page.
+- `ADMIN_USERNAME`: private admin login name.
+- `ADMIN_PASSWORD`: strong unique password (at least 16 characters).
+- `SESSION_SECRET`: random secret (at least 32 characters).
+- `DATABASE_URL`: Neon PostgreSQL connection string. Keep it private.
+- `RESEND_API_KEY`: Resend API key. Keep it private.
+- `NOTIFY_EMAIL`: address that should receive new lead alerts.
+- `EMAIL_FROM`: verified sender address/domain configured in Resend.
 
-The default engine in `ai/leadScorer.js` is offline and needs no API key. It classifies the job, assigns a 0–100 score and Hot/Warm/Cold priority, estimates a 2026 US job-value range, and writes a short sales summary plus a recommended follow-up time.
+Optional:
 
-If `OPENAI_API_KEY` is already set in the environment, scoring may be refined by OpenAI. The key is optional and the app works the same without it.
+- `OPENAI_API_KEY`: enables OpenAI lead scoring refinement. Without it, the app uses transparent rule-based scoring.
+- `OPENAI_MODEL`: defaults to `gpt-4o-mini`.
+- `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, `SERVICE_AREA`: customer-specific public branding.
+- `SEED_DEMO_DATA=true`: explicitly seeds sample leads on a fresh database. Keep unset/false for production.
 
+## Email delivery
 
-## Notifications and tasks
+Lead notifications use the Resend HTTPS API. The application logs the email result in the CRM. A successful HTTP response from Resend means the provider accepted the message; it does not guarantee inbox placement. A verified sending domain/address is required before real customer notifications can be sent.
 
-A new website lead creates an in-app notification (bell in the admin header), a follow-up task timed from the AI recommendation (for example, call within 15 minutes for a Hot emergency), and an internal email alert.
+## Customer onboarding checklist
 
-Every outbound email is written to the **Email log** (`/admin/emails`) with to, subject, body, timestamp, and status, even when SMTP is not configured. If `SMTP_HOST` (and optional `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `NOTIFY_EMAIL` / `SMTP_TO`) is already set, the app also tries to send the message.
+- Set the customer's approved company name, phone, location, and service area.
+- Create a separate Neon database for the customer and apply `postgres-schema.sql`.
+- Set the production admin username, strong password, session secret, and database connection string in Render environment variables.
+- Configure a verified Resend sender and recipient.
+- Submit a controlled test lead and verify it appears in the CRM, remains after a service restart, and triggers the expected email.
+- Do not use demo identity, sample phone numbers, or example contact details for a customer's public launch.
+- Obtain the customer's approval before publishing contact information or sending real customer-facing messages.
 
-The **Tasks** page groups follow-ups into overdue, today, and upcoming. You can complete or snooze a task (1 hour or 1 day), and add a task from a lead’s detail page. A lightweight 30-second check flags newly overdue tasks and adds a reminder notification.
+## Current development status
 
-
-## Dashboard
-
-The admin home page at http://localhost:3847/admin is a live dashboard of SQLite data: new leads today, open Hot leads, pipeline (not Won/Lost), won this month (by date received), and overdue follow-ups. Tiles and charts link through to the filtered lead list or the tasks page. The full lead list is at `/admin/leads`. Dates for “today” and “this month” use America/Denver.
+This branch is a separate migration track. It does not change the existing production branch or live Render service. The PostgreSQL runtime, PostgreSQL session store, Resend API sender, and CI integration test are now present. The app has passed its PostgreSQL 16 CI integration test. Live Neon/Resend verification and environment configuration are the remaining deployment gates. This branch does not alter the existing live Render service.

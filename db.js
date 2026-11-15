@@ -3,7 +3,7 @@ const path = require("path");
 const Database = require("better-sqlite3");
 
 const DATA_DIR = path.join(__dirname, "data");
-const DB_PATH = path.join(DATA_DIR, "leads.db");
+const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "leads.db");
 
 const STATUSES = ["New", "Contacted", "Quoted", "Won", "Lost"];
 
@@ -228,7 +228,7 @@ const SEED_LEADS = [
 ];
 
 function open() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
   db.exec(`
@@ -258,7 +258,7 @@ function open() {
       FOREIGN KEY (lead_id) REFERENCES leads(id)
     );
   `);
-  seedIfEmpty(db);
+  if (process.env.SEED_DEMO_DATA === "true") seedIfEmpty(db);
   ensureAiColumns(db);
   backfillScores(db);
   ensureOpsTables(db);
