@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Request a roof inspection | Sample Roofing Company</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#lead-card">Skip to the request form</a>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <span class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M4 18 L16 7 L28 18 V26 H4 Z" fill="currentColor" opacity="0.22"/>
+        <path d="M4 18 L16 7 L28 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M10 26 V16.5 L16 11.5 L22 16.5 V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      </svg>
+      <strong>Sample Roofing Company</strong>
+    </span>
+    <div class="call-box">
+    <a class="call-link" href="tel:+15550100199" aria-label="Call (555) 010 0199, placeholder number">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" fill="currentColor"/></svg>
+      <span class="call-text"><span class="call-num">(555) 010 0199</span><span class="call-short" aria-hidden="true">Call</span></span>
+    </a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-photo" role="img" aria-label="Close view of a slate shingle roof with two small dormer windows in daylight"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Roof inspection request</p>
+        <h1>Tell us about your roof. <em>We take it from there.</em></h1>
+        <p class="lede">Four short steps, about 60 seconds. A member of our team reads every request and calls you to book an inspection.</p>
+        <ul class="trust">
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Residential and commercial roofs</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Repairs, replacements and storm inspections</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>We never sell your information</li>
+          <li class="ph-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6z"/></svg>License and insurance details <span class="ph-tag ph-dark">Placeholder</span></li>
+          <li class="ph-row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Service area <span class="ph-tag ph-dark">Placeholder</span></li>
+        </ul>
+      </div>
+
+      <!-- ============ LEAD CARD ============ -->
+      <section class="card" id="lead-card" aria-labelledby="card-title">
+        <h2 id="card-title" class="sr-only">Roof inspection request form</h2>
+
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-meta">
+            <span id="step-count">Step 1 of 4</span>
+            <span id="time-left"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>About 60 seconds</span>
+          </div>
+          <div class="progress" role="progressbar" aria-label="Form progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="1" aria-valuetext="Step 1 of 4">
+            <span class="seg on"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+          </div>
+        </div>
+
+        <div class="sr-only" aria-live="polite" id="announcer"></div>
+
+        <form id="lead-form" method="post" action="/leads" novalidate enctype="multipart/form-data">
+          <div class="err-summary" id="err-summary" tabindex="-1" hidden>
+            <p><strong>Please check the highlighted fields</strong></p>
+            <ul id="err-list"></ul>
+          </div>
+
+          <!-- STEP 1 -->
+          <fieldset class="step" data-step="1">
+            <legend class="step-title" tabindex="-1">What do you need help with?</legend>
+            <p class="step-help">Pick the closest match. You can add details later.</p>
+            <div class="tiles tiles-service" id="f-service">
+              <label class="tile tile-leak">
+                <input type="radio" name="service_needed" value="Leak / emergency repair">
+                <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></svg></span>
+                <span class="tile-text"><strong>Active leak right now</strong><span>Water is coming in</span></span>
+                <span class="tile-check" aria-hidden="true"></span>
+              </label>
+              <label class="tile">
+                <input type="radio" name="service_needed" value="Roof repair">
+                <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6.5 3 3"/><path d="M4 20l9.5-9.5"/><path d="M13 4.5l2-1.5 6 6-1.5 2-2-0.5-3.5-3.5z"/></svg></span>
+                <span class="tile-text"><strong>Repair</strong><span>Shingles, flashing or small damage</span></span>
+                <span class="tile-check" aria-hidden="true"></span>
+              </label>
+              <label class="tile">
+                <input type="radio" name="service_needed" value="Roof replacement">
+                <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M9.5 20v-5h5v5"/></svg></span>
+                <span class="tile-text"><strong>Replacement</strong><span>A full new roof</span></span>
+                <span class="tile-check" aria-hidden="true"></span>
+              </label>
+              <label class="tile">
+                <input type="radio" name="service_needed" value="Roof inspection / estimate">
+                <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/><path d="M8 10.5l2 2 3.5-3.5"/></svg></span>
+                <span class="tile-text"><strong>Inspection</strong><span>A checkup or estimate</span></span>
+                <span class="tile-check" aria-hidden="true"></span>
+              </label>
+              <label class="tile">
+                <input type="radio" name="service_needed" value="Storm damage inspection">
+                <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 16.5H6a4 4 0 0 1-.4-8A6 6 0 0 1 17 7.5a4.5 4.5 0 0 1 1 9h-1"/><path d="m12.5 12-2.5 4h3.5L11 20"/></svg></span>
+                <span class="tile-text"><strong>Storm damage</strong><span>Hail, wind or an insurance claim</span></span>
+                <span class="tile-check" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p class="field-msg" id="service-msg" role="alert"></p>
+
+            <div class="urgent" id="urgent-panel" hidden>
+              <div class="urgent-head">
+                <span class="pulse" aria-hidden="true"></span>
+                <strong>Water coming in? Call us so we can help faster.</strong>
+              </div>
+              <a class="btn btn-urgent" href="tel:+15550100199">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" fill="currentColor" stroke="none"/></svg>
+                Call (555) 010 0199
+              </a>
+              <p class="ph-note"><span class="ph-tag">Placeholder</span> Replace with the real emergency line.</p>
+              <ul class="urgent-tips">
+                <li>Stay off the roof, especially when it is wet.</li>
+                <li>Move valuables and electronics away from the water.</li>
+                <li>Prefer to type? Continue online and we will mark your request as urgent.</li>
+              </ul>
+            </div>
+          </fieldset>
+
+          <!-- STEP 2 -->
+          <fieldset class="step" data-step="2" hidden>
+            <legend class="step-title" tabindex="-1">Where is the property?</legend>
+            <p class="step-help">Start typing and pick your address from the list.</p>
+
+            <div class="field" id="addr-field">
+              <label for="address">Property address</label>
+              <div class="combo">
+                <svg class="in-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                <input id="address" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addr-list" aria-describedby="address-msg" placeholder="e.g. 214 Maple Avenue">
+                <span class="ok-icon" aria-hidden="true"></span>
+                <ul class="suggest" id="addr-list" role="listbox" hidden></ul>
+              </div>
+              <p class="field-msg" id="address-msg"></p>
+              <button type="button" class="linkbtn" id="manual-toggle" aria-expanded="false" aria-controls="manual-addr">Can't find it? Enter the address yourself</button>
+            </div>
+
+            <div class="manual" id="manual-addr" hidden>
+              <div class="field">
+                <label for="street">Street address</label>
+                <input id="street" name="street" type="text" maxlength="160" autocomplete="street-address" aria-describedby="street-msg">
+                <p class="field-msg" id="street-msg"></p>
+              </div>
+              <div class="row-3">
+                <div class="field">
+                  <label for="city">City</label>
+                  <input id="city" name="city" type="text" maxlength="80" autocomplete="address-level2" aria-describedby="city-msg">
+                  <p class="field-msg" id="city-msg"></p>
+                </div>
+                <div class="field">
+                  <label for="state">State</label>
+                  <select id="state" name="state" autocomplete="address-level1" aria-describedby="state-msg"><option value="">Select</option></select>
+                  <p class="field-msg" id="state-msg"></p>
+                </div>
+                <div class="field">
+                  <label for="zip">ZIP</label>
+                  <input id="zip" name="zip" type="text" inputmode="numeric" maxlength="10" autocomplete="postal-code" aria-describedby="zip-msg">
+                  <p class="field-msg" id="zip-msg"></p>
+                </div>
+              </div>
+            </div>
+
+            <fieldset class="sub">
+              <legend>Property type</legend>
+              <div class="seg-toggle">
+                <label><input type="radio" name="property_type" value="Residential" checked><span>Home</span></label>
+                <label><input type="radio" name="property_type" value="Commercial"><span>Business</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="sub">
+              <legend>Roof type</legend>
+              <div class="tiles tiles-roof" id="f-roof">
+                <label class="tile mini"><input type="radio" name="roof_type" value="Asphalt shingle">
+                  <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13 12 5l9 8"/><path d="M6 11.5h12M8 14.5h8M5 17.5h14"/></svg></span><strong>Asphalt shingle</strong><span class="tile-check" aria-hidden="true"></span></label>
+                <label class="tile mini"><input type="radio" name="roof_type" value="Metal">
+                  <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13 12 5l9 8"/><path d="M9 9v10M12 7v12M15 9v10"/></svg></span><strong>Metal</strong><span class="tile-check" aria-hidden="true"></span></label>
+                <label class="tile mini"><input type="radio" name="roof_type" value="Tile">
+                  <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13 12 5l9 8"/><path d="M6 14a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0M6 18a1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0 1.5 1.5 0 0 0 3 0"/></svg></span><strong>Tile</strong><span class="tile-check" aria-hidden="true"></span></label>
+                <label class="tile mini"><input type="radio" name="roof_type" value="Flat">
+                  <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18"/><path d="M5 9v10h14V9"/><path d="M9 19v-4h6v4"/></svg></span><strong>Flat</strong><span class="tile-check" aria-hidden="true"></span></label>
+                <label class="tile mini"><input type="radio" name="roof_type" value="Other">
+                  <span class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5v.7"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></span><strong>Not sure or other</strong><span class="tile-check" aria-hidden="true"></span></label>
+              </div>
+              <p class="field-msg" id="roof-msg" role="alert"></p>
+            </fieldset>
+          </fieldset>
+
+          <!-- STEP 3 -->
+          <fieldset class="step" data-step="3" hidden>
+            <legend class="step-title" tabindex="-1">When do you need us?</legend>
+            <p class="step-help">This helps us plan the right visit.</p>
+            <div class="chips" id="f-urgency">
+              <label class="chip chip-urgent"><input type="radio" name="urgency" value="Emergency — active leak"><span>Emergency, active leak</span></label>
+              <label class="chip"><input type="radio" name="urgency" value="This week"><span>This week</span></label>
+              <label class="chip"><input type="radio" name="urgency" value="This month"><span>This month</span></label>
+              <label class="chip"><input type="radio" name="urgency" value="Planning — 1 to 3 months"><span>In 1 to 3 months</span></label>
+              <label class="chip"><input type="radio" name="urgency" value="Just getting estimates"><span>Just getting estimates</span></label>
+            </div>
+            <p class="field-msg" id="urgency-msg" role="alert"></p>
+
+            <div class="field">
+              <label for="issue_description">Anything we should know? <span class="opt">Optional</span></label>
+              <textarea id="issue_description" name="issue_description" maxlength="2000" rows="4" aria-describedby="desc-count" placeholder="For example: water stain on the bedroom ceiling after last week's storm."></textarea>
+              <p class="counter" id="desc-count">0 of 2000 characters</p>
+            </div>
+
+            <div class="field">
+              <span class="label" id="photos-label">Photos of the roof or damage <span class="opt">Optional</span></span>
+              <label class="drop" for="photos">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2.5"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8.5 5l1.5-2h4l1.5 2"/></svg>
+                <span><strong>Add photos</strong> from your phone or computer</span>
+                <span class="drop-sub">Up to 5 images. Only take photos from the ground.</span>
+              </label>
+              <input id="photos" name="photos" type="file" accept="image/*" multiple class="sr-only" aria-labelledby="photos-label">
+              <ul class="thumbs" id="thumbs"></ul>
+            </div>
+          </fieldset>
+
+          <!-- STEP 4 -->
+          <fieldset class="step" data-step="4" hidden>
+            <legend class="step-title" tabindex="-1">Where should we reach you?</legend>
+            <p class="step-help">Last step. Pick how you like to be reached, and we only ask for what that needs.</p>
+
+            <fieldset class="sub sub-first">
+              <legend>How should we contact you?</legend>
+              <div class="chips chips-3" id="f-method">
+                <label class="chip"><input type="radio" name="preferred_contact" value="Phone" checked><span>Call</span></label>
+                <label class="chip"><input type="radio" name="preferred_contact" value="Text"><span>Text</span></label>
+                <label class="chip"><input type="radio" name="preferred_contact" value="Email"><span>Email</span></label>
+              </div>
+            </fieldset>
+            <div class="contact-fields" id="contact-fields">
+              <div class="field" id="phone-field">
+                <label for="phone"><span id="phone-label">Phone number</span> <span class="opt" id="phone-opt" hidden>Optional</span></label>
+                <div class="in-wrap"><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" aria-describedby="phone-msg" placeholder="(555) 123 4567"><span class="ok-icon" aria-hidden="true"></span></div>
+                <p class="field-msg" id="phone-msg"></p>
+              </div>
+              <div class="field" id="name-field">
+                <label for="full_name">Full name</label>
+                <div class="in-wrap"><input id="full_name" name="full_name" type="text" autocomplete="name" maxlength="120" aria-describedby="name-msg"><span class="ok-icon" aria-hidden="true"></span></div>
+                <p class="field-msg" id="name-msg"></p>
+              </div>
+              <div class="field" id="email-field">
+                <label for="email"><span id="email-label">Email</span> <span class="opt" id="email-opt">Optional, for a copy of your request</span></label>
+                <div class="in-wrap"><input id="email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="120" aria-describedby="email-msg"><span class="ok-icon" aria-hidden="true"></span></div>
+                <p class="field-msg" id="email-msg"></p>
+              </div>
+            </div>
+            <p class="consent">By sending this request, you agree that Sample Roofing Company may contact you about it using the method you choose. We never sell your information.</p>
+          </fieldset>
+
+          <!-- NAV (sticky on mobile) -->
+          <div class="nav" id="nav">
+            <button type="button" class="btn btn-ghost" id="back-btn" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Back
+            </button>
+            <button type="button" class="btn btn-primary" id="next-btn">
+              <span id="next-label">Next</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+        </form>
+
+        <!-- SUCCESS -->
+        <div class="success" id="success" hidden tabindex="-1" aria-labelledby="success-title">
+          <div class="success-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h2 id="success-title">Thanks, <span id="s-name">there</span>. Your request is in.</h2>
+          <p class="s-lede">We will <span id="s-method">call</span> you at <strong id="s-contact"></strong> to book your inspection.</p>
+          <p class="s-window"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Callback window <span class="ph-tag">Placeholder</span></p>
+          <p class="s-urgent" id="s-urgent" hidden><span class="pulse" aria-hidden="true"></span>Marked urgent. For water coming in now, please also call us.</p>
+          <dl class="s-summary" id="s-summary"></dl>
+          <p class="s-ref">Request reference <strong id="s-ref"></strong></p>
+          <div class="s-actions">
+            <a class="btn btn-primary" href="tel:+15550100199">Call (555) 010 0199</a>
+            <button type="button" class="btn btn-ghost" id="restart">Start a new request</button>
+          </div>
+          <p class="ph-note center"><span class="ph-tag">Placeholder</span> Phone number and callback window to be confirmed by the client.</p>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="next-strip" aria-labelledby="next-title">
+    <div class="wrap">
+      <h2 id="next-title">What happens next</h2>
+      <ol class="next-list">
+        <li><span class="num">1</span><div><strong>We read your request</strong><p>Your answers and photos go straight to our team, so nobody has to ask you twice.</p></div></li>
+        <li><span class="num">2</span><div><strong>We contact you to book a visit</strong><p>By call, text or email, the way you chose, at a time that suits you.</p><span class="ph-line"><span class="ph-tag">Placeholder</span>Callback window</span></div></li>
+        <li><span class="num">3</span><div><strong>You get a clear estimate</strong><p>After the inspection we explain what we found and what it would take.</p><span class="ph-line"><span class="ph-tag">Placeholder</span>Confirm estimate process</span></div></li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-inner">
+    <p>© 2026 Sample Roofing Company. Concept prototype, not connected to a live system.</p>
+    <p>Phone (555) 010 0199 <span class="ph-tag ph-dark">Placeholder</span> · Photo: Michaela St on Pexels</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
