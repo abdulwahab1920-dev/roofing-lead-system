@@ -32,7 +32,6 @@ databases:
   - name: roofing-crm-staging-db
     plan: free
     region: oregon
-    diskSizeGB: 1
     postgresMajorVersion: "18"
     databaseName: roofing_crm_staging_db
     user: roofing_crm_staging_db_user
