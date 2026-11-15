@@ -52,7 +52,12 @@ async function waitForServer(url, child) {
 
     const form = await fetch(base + "/");
     assert.equal(form.status, 200, "Public lead form should load.");
-    assert.match(await form.text(), /Request a roofing inspection/);
+    const formHtml = await form.text();
+    assert.match(formHtml, /Roofing Lead CRM Demo/);
+    assert.match(formHtml, /INTERACTIVE DEMO/);
+    assert.match(formHtml, /name="photos"/);
+    const formScript = await fetch(base + "/app.js");
+    assert.equal(formScript.status, 200, "New form JavaScript should load.");
 
     const protectedPage = await fetch(base + "/admin", {
       redirect: "manual",
@@ -110,7 +115,83 @@ async function waitForServer(url, child) {
     assert.equal(leadsPage.status, 200, "Admin lead list should load after submission.");
     assert.match(await leadsPage.text(), /CI Smoke Test/, "Submitted lead should appear in the CRM.");
 
-    console.log("Smoke test passed: public form, protected admin, PostgreSQL-backed login session, lead submission, CRM listing.");
+    const optionalEmail = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Email Only Test", email: "email-only@example.com", preferred_contact: "Email",
+      street: "456 Test Street", city: "Denver", state: "CO", zip: "80203",
+      property_type: "Residential", roof_type: "Metal", service_needed: "Roof inspection / estimate",
+      urgency: "This month",
+    })) optionalEmail.append(key, value);
+    const emailOnlyResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: optionalEmail,
+    });
+    assert.equal(emailOnlyResponse.status, 201, "Email preference should allow an omitted phone and issue description.");
+    const emailOnlyResult = await emailOnlyResponse.json();
+    assert.match(emailOnlyResult.reference, /^RL-/);
+
+    const missingEmail = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Missing Email Test", preferred_contact: "Email",
+      street: "456 Test Street", city: "Denver", state: "CO", zip: "80203",
+      property_type: "Residential", roof_type: "Metal", service_needed: "Roof repair", urgency: "This week",
+    })) missingEmail.append(key, value);
+    const missingEmailResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: missingEmail,
+    });
+    assert.equal(missingEmailResponse.status, 400, "Email preference must require an email address.");
+
+    const missingPhone = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Missing Phone Test", preferred_contact: "Text", email: "optional@example.com",
+      street: "456 Test Street", city: "Denver", state: "CO", zip: "80203",
+      property_type: "Residential", roof_type: "Metal", service_needed: "Roof repair", urgency: "This week",
+    })) missingPhone.append(key, value);
+    const missingPhoneResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: missingPhone,
+    });
+    assert.equal(missingPhoneResponse.status, 400, "Phone/Text preference must require a phone number.");
+
+    const photoForm = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Photo Upload Test", phone: "(303) 555-0188", preferred_contact: "Phone",
+      street: "789 Photo Road", city: "Denver", state: "CO", zip: "80204",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week",
+    })) photoForm.append(key, value);
+    const pngSignature = Buffer.from([137,80,78,71,13,10,26,10]);
+    for (let i = 0; i < 5; i++) photoForm.append("photos", new Blob([pngSignature], { type: "image/png" }), `roof-${i+1}.png`);
+    const photoResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: photoForm,
+    });
+    assert.equal(photoResponse.status, 201, "A lead with five images should be accepted.");
+    const photoResult = await photoResponse.json();
+    const detailResponse = await fetch(base + `/admin/leads/${photoResult.id}`, {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(detailResponse.status, 200, "Photo lead detail should load.");
+    const detailHtml = await detailResponse.text();
+    assert.match(detailHtml, /Roof photos/);
+    assert.equal((detailHtml.match(/\/photos\//g) || []).length >= 5, true, "All five photos should be shown.");
+    const storedPhoto = await fetch(base + `/admin/leads/${photoResult.id}/photos/1`, {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(storedPhoto.status, 200, "Authenticated photo retrieval should work.");
+    assert.equal(storedPhoto.headers.get("content-type"), "image/png");
+
+    const tooManyPhotos = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Too Many Photos Test", phone: "(303) 555-0187", preferred_contact: "Phone",
+      street: "789 Photo Road", city: "Denver", state: "CO", zip: "80204",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week",
+    })) tooManyPhotos.append(key, value);
+    for (let i = 0; i < 6; i++) tooManyPhotos.append("photos", new Blob([pngSignature], { type: "image/png" }), `extra-${i+1}.png`);
+    const tooManyResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: tooManyPhotos,
+    });
+    assert.equal(tooManyResponse.status, 400, "More than five images must be rejected.");
+
+        console.log("Smoke test passed: new form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage and authenticated photo display.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {
