@@ -1,7 +1,16 @@
-const COMPANY_NAME = process.env.COMPANY_NAME || "Summit Ridge Roofing";
-const COMPANY_PHONE = process.env.COMPANY_PHONE || "(303) 555-0148";
-const COMPANY_LOCATION = process.env.COMPANY_LOCATION || "Denver, Colorado";
-const SERVICE_AREA = process.env.SERVICE_AREA || "Denver metro and Colorado Front Range";
+const DEMO_MODE = process.env.DEMO_MODE !== "false";
+const COMPANY_NAME = DEMO_MODE
+  ? process.env.DEMO_COMPANY_NAME || "Sample Roofing Company"
+  : process.env.COMPANY_NAME || "Your Roofing Company";
+const COMPANY_PHONE = DEMO_MODE
+  ? process.env.DEMO_COMPANY_PHONE || ""
+  : process.env.COMPANY_PHONE || "";
+const COMPANY_LOCATION = DEMO_MODE
+  ? process.env.DEMO_COMPANY_LOCATION || ""
+  : process.env.COMPANY_LOCATION || "";
+const SERVICE_AREA = DEMO_MODE
+  ? process.env.DEMO_SERVICE_AREA || "Example service area"
+  : process.env.SERVICE_AREA || "Your local service area";
 
 const {
   STATUSES,
@@ -81,7 +90,7 @@ function logoMark() {
 
 function publicFooter() {
   return `<footer class="site-footer">
-    <p>© 2026 ${escapeHtml(COMPANY_NAME)} · Licensed &amp; insured · ${escapeHtml(COMPANY_LOCATION)}</p>
+    <p>© 2026 ${escapeHtml(COMPANY_NAME)}${COMPANY_LOCATION ? " · " + escapeHtml(COMPANY_LOCATION) : ""}</p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -114,18 +123,19 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
     <div class="wrap header-inner">
       ${logoMark()}
       <div class="header-meta">
-        <span>Licensed &amp; insured</span>
-        <span class="dot"></span>
-        <span>${escapeHtml(COMPANY_PHONE)}</span>
+        ${DEMO_MODE ? "<span>Interactive demo</span>" : ""}
+        ${COMPANY_PHONE ? (DEMO_MODE ? "" : '<span class="dot"></span>') + "<span>" + escapeHtml(COMPANY_PHONE) + "</span>" : ""}
       </div>
     </div>
   </header>
 
   <main class="wrap page-grid">
     <section class="intro">
-      <p class="eyebrow">Free inspection · ${escapeHtml(SERVICE_AREA)}</p>
+      <p class="eyebrow">${DEMO_MODE ? "Interactive demo · Sample lead form" : escapeHtml(SERVICE_AREA)}</p>
       <h1>Request a roofing inspection</h1>
-      <p class="lede">Tell us about your property and the issue. The ${escapeHtml(COMPANY_NAME)} team will follow up by your preferred contact method, usually within one business day — sooner for active leaks.</p>
+      <p class="lede">${DEMO_MODE
+        ? "This is a demonstration form. Use fictional contact details; submissions appear in the sample CRM dashboard."
+        : "Tell us about your property and the issue. Our team will follow up by your preferred contact method."}</p>
       <ul class="trust">
         <li>Residential and commercial roofs</li>
         <li>Repairs, replacements, and storm inspections</li>
@@ -261,7 +271,9 @@ function thanksPage() {
     <section class="form-card thanks">
       <p class="eyebrow">Request received</p>
       <h1>Thank you. We’ll be in touch.</h1>
-      <p>Your inspection request has been saved. The ${escapeHtml(COMPANY_NAME)} team will follow up by your preferred contact method, usually within one business day. If you reported an active leak, we’ll try to reach you sooner.</p>
+      <p>${DEMO_MODE
+        ? "Your sample request has been saved in the demonstration CRM. No roofing company will contact you."
+        : "Your inspection request has been saved. Our team will follow up by your preferred contact method."}</p>
       <p><a href="/" class="btn secondary">Submit another request</a></p>
     </section>
   </main>
