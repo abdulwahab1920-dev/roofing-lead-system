@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record a paced walkthrough of the live Summit Ridge lead system."""
+"""Record a paced walkthrough of the live Artific Creations roofing lead CRM demo."""
 
 import asyncio
 import time
@@ -232,7 +232,7 @@ def run():
         page.goto(BASE + "/admin/login", wait_until="networkidle")
         pause(page, 0.8)
         type_into(page, "#username", "admin", delay=70)
-        type_into(page, "#password", "SummitRidge2026!", delay=55)
+        type_into(page, "#password", "your-admin-password", delay=55)
         click_sel(page, "form button[type=submit]")
         page.wait_for_url("**/admin", timeout=10000)
         page.wait_for_selector("section.kpi-grid")

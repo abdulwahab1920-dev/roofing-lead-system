@@ -23,6 +23,8 @@ services:
         generateValue: true
       - key: COMPANY_NAME
         value: Artific Creations Demo
+      - key: APP_TIMEZONE
+        value: America/Denver
       - key: DEMO_MODE
         value: "true"
       - key: NODE_ENV

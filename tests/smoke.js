@@ -40,6 +40,9 @@ async function waitForServer(url, child) {
       OPENAI_API_KEY: "",
       SMTP_HOST: "",
       SEED_DEMO_DATA: "false",
+      RESET_DEMO_DATA: "",
+      COMPANY_NAME: "Artific Creations Demo",
+      APP_TIMEZONE: "America/Denver",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -56,6 +59,13 @@ async function waitForServer(url, child) {
     assert.match(formHtml, /Roofing Lead CRM Demo/);
     assert.match(formHtml, /INTERACTIVE DEMO/);
     assert.match(formHtml, /name="photos"/);
+    assert.match(formHtml, /Artific Creations Demo/);
+    assert.doesNotMatch(formHtml, /Summit Ridge|Sample Roofing Company/);
+    assert.equal(form.headers.get("x-frame-options"), "DENY");
+    assert.equal(form.headers.get("x-content-type-options"), "nosniff");
+    assert.match(form.headers.get("content-security-policy") || "", /frame-ancestors/);
+    const favicon = await fetch(base + "/favicon.svg");
+    assert.equal(favicon.status, 200, "Favicon should be available.");
     const formScript = await fetch(base + "/form-assets/app.js");
     assert.equal(formScript.status, 200, "New form JavaScript should load.");
     const formStyles = await fetch(base + "/form-assets/styles.css");

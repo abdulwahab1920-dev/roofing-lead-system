@@ -1,16 +1,4 @@
-const DEMO_MODE = process.env.DEMO_MODE !== "false";
-const COMPANY_NAME = DEMO_MODE
-  ? process.env.DEMO_COMPANY_NAME || "Sample Roofing Company"
-  : process.env.COMPANY_NAME || "Your Roofing Company";
-const COMPANY_PHONE = DEMO_MODE
-  ? process.env.DEMO_COMPANY_PHONE || ""
-  : process.env.COMPANY_PHONE || "";
-const COMPANY_LOCATION = DEMO_MODE
-  ? process.env.DEMO_COMPANY_LOCATION || ""
-  : process.env.COMPANY_LOCATION || "";
-const SERVICE_AREA = DEMO_MODE
-  ? process.env.DEMO_SERVICE_AREA || "Example service area"
-  : process.env.SERVICE_AREA || "Your local service area";
+const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
 
 const {
   STATUSES,
@@ -70,6 +58,9 @@ function layout({ title, body, admin = false }) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(title)}</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="shortcut icon" href="/favicon.ico">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="${admin ? "admin" : "public"}">
@@ -273,7 +264,7 @@ function thanksPage() {
   <main class="wrap narrow">
     <section class="form-card thanks">
       <p class="eyebrow">Request received</p>
-      <h1>Thank you. We’ll be in touch.</h1>
+      <h1>${DEMO_MODE ? "Your demo request is saved." : "Thank you. We’ll be in touch."}</h1>
       <p>${DEMO_MODE
         ? "Your sample request has been saved in the demonstration CRM. No roofing company will contact you."
         : "Your inspection request has been saved. Our team will follow up by your preferred contact method."}</p>
@@ -561,7 +552,7 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
 
 function aiPanel(lead) {
   const scored = lead.ai_score !== null && lead.ai_score !== undefined;
-  const source = lead.ai_source === "openai" ? "OpenAI-assisted" : "Offline scoring";
+  const source = lead.ai_source === "openai" ? "AI-assisted scoring" : "AI rules engine";
   const when = lead.ai_scored_at ? ` · ${formatDate(lead.ai_scored_at)}` : "";
   const body = scored
     ? `<div class="ai-metrics">
@@ -754,7 +745,7 @@ function emailLogPage({ emails, chrome }) {
   ${adminHeader({ chrome })}
   <main class="wrap">
     <h1 class="page-title">Email log</h1>
-    <p class="search-meta">Every outbound alert is recorded here, even when SMTP is not configured. Status is <code>logged</code> unless a message was actually sent.</p>
+    <p class="search-meta">Every outbound alert is recorded here. Messages are sent through Resend when it is connected. Status is <code>sent</code> when delivery is accepted, or <code>logged</code> / <code>logged-send-failed</code> when a message is only stored or could not be sent.</p>
     ${rows}
   </main>
   ${adminFooter()}`;

@@ -43,8 +43,8 @@ Optional:
 
 - `OPENAI_API_KEY`: enables OpenAI lead scoring refinement. Without it, the app uses transparent rule-based scoring.
 - `OPENAI_MODEL`: defaults to `gpt-4o-mini`.
-- `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, `SERVICE_AREA`: customer-specific public branding.
-- `SEED_DEMO_DATA=true`: explicitly seeds sample leads on a fresh database. Keep unset/false for production.
+- `COMPANY_NAME`, `COMPANY_PHONE`, `COMPANY_LOCATION`, `SERVICE_AREA`: public branding used on the form, admin, emails, and AI next-step copy. `COMPANY_NAME` defaults to `Artific Creations Demo`.
+- `RESET_DEMO_DATA`: optional one-time demo reset token. When this value changes, the app wipes leads/tasks/notes/notifications/emails and seeds fictional US sample leads. Restarting with the same token does not wipe again. Leave unset on a real customer install.
 - `APP_TIMEZONE`: IANA time zone for CRM dates, “today/this month” filters, and task due times. Defaults to `America/Denver` (Mountain Time). Examples: `America/Chicago`, `America/New_York`, `Asia/Karachi`, `UTC`. Times in the CRM include a short zone label such as MST, CST, or PKT.
 - `APP_URL`: public site origin used in lead-alert email links, for example `https://roofing-crm-staging.onrender.com`. Optional on Render, which already sets `RENDER_EXTERNAL_URL` automatically. If neither is set, the email keeps a relative CRM path.
 

@@ -1,5 +1,8 @@
 "use strict";
 
+const { COMPANY_NAME } = require("../company");
+const { formatLeadLocation } = require("../location");
+
 const CATEGORIES = [
   "Emergency Repair",
   "Leak Repair",
@@ -145,7 +148,7 @@ function moneyRange(lead, category, text) {
   let low;
   let high;
   if (category === "Inspection") {
-    low = 0;
+    low = 150;
     high = 450;
   } else if (category === "Maintenance") {
     low = isCommercial ? 2000 : 800;
@@ -271,7 +274,7 @@ function nextAction(lead, category, priority) {
   }
   return {
     followup: "Within 2 business days",
-    next_action: `Send a short email within 2 business days introducing Summit Ridge and offering a convenient inspection time.`,
+    next_action: `Send a short email within 2 business days introducing ${COMPANY_NAME} and offering a convenient inspection time.`,
   };
 }
 
@@ -280,7 +283,7 @@ function formatMoney(n) {
 }
 
 function buildSummary(lead, category, priority, range) {
-  const where = [lead.city, lead.state].filter(Boolean).join(", ") || "an unspecified city";
+  const where = formatLeadLocation(lead);
   const prop = String(lead.property_type || "residential").toLowerCase();
   const roof = String(lead.roof_type || "roof").toLowerCase();
   const issue = String(lead.issue_description || "").replace(/\s+/g, " ").trim();
@@ -288,7 +291,9 @@ function buildSummary(lead, category, priority, range) {
   const value = `${formatMoney(range.low)}–${formatMoney(range.high)}`;
   const urgency = String(lead.urgency || "an unspecified timeline").toLowerCase();
 
-  const sentence1 = `${lead.full_name || "This lead"} in ${where} is a ${prop} ${roof} ${category.toLowerCase()} inquiry (${urgency}).`;
+  const sentence1 = where
+    ? `${lead.full_name || "This lead"} in ${where} is a ${prop} ${roof} ${category.toLowerCase()} inquiry (${urgency}).`
+    : `${lead.full_name || "This lead"} is a ${prop} ${roof} ${category.toLowerCase()} inquiry (${urgency}) at a location that needs review.`;
   const sentence2 = snippet
     ? `The homeowner reports: ${snippet}`
     : `Little detail was provided beyond the requested service.`;

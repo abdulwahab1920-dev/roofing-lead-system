@@ -1,6 +1,7 @@
 "use strict";
 
-const COMPANY_NAME = process.env.COMPANY_NAME || "Your Roofing Company";
+const { COMPANY_NAME } = require("./company");
+const { formatLeadLocation } = require("./location");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -34,7 +35,7 @@ function composeLeadAlert(lead) {
   const category = lead.ai_category || "n/a";
   const crmUrl = crmLeadUrl(lead.id);
   const subject = `New ${priority} lead: ${name}${lead.ai_category ? " — " + lead.ai_category : ""}`;
-  const location = [lead.city, lead.state].filter(Boolean).join(", ") || "—";
+  const location = formatLeadLocation(lead) || "Location needs review";
   const valueRange = `${formatMoney(lead.ai_value_low)}–${formatMoney(lead.ai_value_high)}`;
   const nextAction = lead.ai_next_action || "Review the lead and follow up.";
   const body = [
