@@ -176,6 +176,13 @@ input.invalid, select.invalid, textarea.invalid { border-color: #b42318; }
   font-size: 0.92rem;
 }
 .banner.error { background: #fdecea; color: #8a1c12; border: 1px solid #f3c4be; }
+.banner.ok { background: #eaf6ec; color: var(--ok); border: 1px solid #c9e6cf; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.page-actions .btn.small { background: var(--navy); color: #fff; }
+.lead-form-card { max-width: 860px; margin-bottom: 48px; }
+.lead-form-card .btn.primary { width: auto; }
+.import-errors, .import-created { margin: 0 0 16px; padding-left: 18px; }
+.import-errors li, .import-created li { margin: 4px 0; }
 
 .site-footer {
   margin-top: auto;

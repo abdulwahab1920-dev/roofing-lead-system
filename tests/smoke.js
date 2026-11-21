@@ -230,7 +230,160 @@ async function waitForServer(url, child) {
     });
     assert.equal(oversizedResponse.status, 400, "Images larger than 5 MB must be rejected.");
 
-        console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, and invalid/oversized upload rejection.");
+    const newLeadPage = await fetch(base + "/admin/leads/new", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(newLeadPage.status, 200, "New lead page should render.");
+    const newLeadHtml = await newLeadPage.text();
+    assert.match(newLeadHtml, /action="\/admin\/leads"/);
+    assert.match(newLeadHtml, /name="full_name"/);
+    assert.match(newLeadHtml, /Create lead/);
+    assert.doesNotMatch(newLeadHtml, /Something went wrong/);
+
+    const invalidNewLead = await fetch(base + "/admin/leads", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+      body: new URLSearchParams({ full_name: "A", status: "New" }).toString(),
+    });
+    assert.equal(invalidNewLead.status, 400, "Incomplete new lead should re-render the form.");
+    assert.match(await invalidNewLead.text(), /Enter your full name|too short|This field is required/i);
+
+    const manualLead = {
+      full_name: 'Ada, "Demo"\nLead',
+      phone: "(555) 010-0198",
+      email: "ada.demo@example.com",
+      preferred_contact: "Phone",
+      street: "100 Demo Lane",
+      city: "Denver",
+      state: "CO",
+      zip: "80202",
+      property_type: "Residential",
+      roof_type: "Asphalt shingle",
+      service_needed: "Roof repair",
+      urgency: "This week",
+      issue_description: "FICTIONAL manual lead with a comma, a \"quote\", and a\nnewline.",
+      status: "Contacted",
+    };
+    const created = await fetch(base + "/admin/leads", {
+      method: "POST",
+      redirect: "manual",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+      body: new URLSearchParams(manualLead).toString(),
+    });
+    assert.equal(created.status, 302, "Creating a lead should redirect to it.");
+    const createdLocation = created.headers.get("location") || "";
+    assert.match(createdLocation, /^\/admin\/leads\/\d+$/);
+    const createdDetail = await fetch(base + createdLocation, {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(createdDetail.status, 200, "The new lead should be viewable.");
+    const createdHtml = await createdDetail.text();
+    assert.match(createdHtml, /Ada,/);
+    assert.match(createdHtml, /Contacted/);
+
+    const bogusLead = await fetch(base + "/admin/leads/not-a-number", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(bogusLead.status, 404, "A non-numeric lead id should be a 404, not a 500.");
+    assert.match(await bogusLead.text(), /Back to the dashboard/);
+
+    const exported = await fetch(base + "/admin/leads/export.csv", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(exported.status, 200, "CSV export should download.");
+    assert.match(exported.headers.get("content-type") || "", /text\/csv/);
+    assert.match(exported.headers.get("content-disposition") || "", /leads\.csv/);
+    const exportedText = await exported.text();
+    const { recordsFromCsv } = require("../csv");
+    const exportedRows = recordsFromCsv(exportedText);
+    assert.equal(exportedRows.error, undefined);
+    const ada = exportedRows.records.find((row) => row.data.email === "ada.demo@example.com");
+    assert.ok(ada, "Exported CSV should include the manual lead.");
+    assert.equal(ada.data.full_name, manualLead.full_name);
+    assert.equal(ada.data.issue_description, manualLead.issue_description);
+    assert.equal(ada.data.status, "Contacted");
+
+    const importRedirect = await fetch(base + "/admin/import", {
+      redirect: "manual",
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(importRedirect.status, 302);
+    assert.equal(importRedirect.headers.get("location"), "/admin/leads/import");
+    const exportRedirect = await fetch(base + "/admin/export", {
+      redirect: "manual",
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(exportRedirect.status, 302);
+    assert.equal(exportRedirect.headers.get("location"), "/admin/leads/export.csv");
+
+    const importPage = await fetch(base + "/admin/leads/import", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(importPage.status, 200);
+    assert.match(await importPage.text(), /multipart\/form-data/);
+
+    const importCsv = [
+      "full_name,phone,email,street,city,state,zip,property_type,roof_type,service_needed,issue_description,urgency,preferred_contact,status",
+      '"Import, OK","(555) 010-0199",import.ok@example.com,100 Demo Lane,Denver,CO,80202,Residential,Asphalt shingle,Roof repair,"Line one\nLine two, still quoted",This week,Phone,New',
+      "Bad Zip,(555) 010-0188,bad.zip@example.com,200 Sample Street,Denver,CO,12,Residential,Metal,Roof repair,This fictional row has a bad ZIP code.,This month,Email,Quoted",
+    ].join("\r\n");
+    const importForm = new FormData();
+    importForm.append("file", new Blob([importCsv], { type: "text/csv" }), "leads.csv");
+    const imported = await fetch(base + "/admin/leads/import", {
+      method: "POST",
+      headers: { cookie, "x-forwarded-proto": "https" },
+      body: importForm,
+    });
+    assert.equal(imported.status, 200, "CSV import should report a result.");
+    const importHtml = await imported.text();
+    assert.match(importHtml, /Imported 1 lead/);
+    assert.match(importHtml, /Row 3:/);
+    assert.match(importHtml, /ZIP/);
+    assert.match(importHtml, /Import, OK/);
+
+    const loginWithNext = await fetch(base + "/admin/login?next=/admin/tasks", {
+      headers: { "x-forwarded-proto": "https" },
+    });
+    assert.match(await loginWithNext.text(), /name="next" value="\/admin\/tasks"/);
+    const postedNext = await fetch(base + "/admin/login", {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+      body: new URLSearchParams({ username, password, next: "/admin/leads/new" }).toString(),
+    });
+    assert.equal(postedNext.status, 302);
+    assert.equal(postedNext.headers.get("location"), "/admin/leads/new");
+    for (const evil of ["https://evil.example/admin", "//evil.example", "/\\evil.example", "/admin.evil.example", "/admin/%2f%2fevil.example"]) {
+      const rejected = await fetch(base + "/admin/login", {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+        body: new URLSearchParams({ username, password, next: evil }).toString(),
+      });
+      assert.equal(rejected.status, 302, evil);
+      assert.equal(rejected.headers.get("location"), "/admin", evil);
+    }
+    const queryNext = await fetch(base + "/admin/login?next=/admin/emails", {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+      body: new URLSearchParams({ username, password }).toString(),
+    });
+    assert.equal(queryNext.headers.get("location"), "/admin/emails");
+
+    const adminMissing = await fetch(base + "/admin/does-not-exist");
+    assert.equal(adminMissing.status, 404);
+    const adminMissingHtml = await adminMissing.text();
+    assert.match(adminMissingHtml, /Back to the dashboard/);
+    assert.match(adminMissingHtml, /href="\/admin"/);
+    assert.doesNotMatch(adminMissingHtml, /inspection form/);
+    const publicMissing = await fetch(base + "/no-such-public-page");
+    assert.equal(publicMissing.status, 404);
+    const publicMissingHtml = await publicMissing.text();
+    assert.match(publicMissingHtml, /Back to the inspection form/);
+    assert.doesNotMatch(publicMissingHtml, /Back to the dashboard/);
+
+    console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, and admin 404.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {

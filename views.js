@@ -373,6 +373,9 @@ function adminHeader({ query = "", count, chrome = {}, inboxOpen = false } = {})
       <nav class="admin-nav">
         <a href="/admin">Dashboard</a>
         <a href="/admin/leads">Leads</a>
+        <a href="/admin/leads/new">New lead</a>
+        <a href="/admin/leads/import">Import</a>
+        <a href="/admin/leads/export.csv">Export</a>
         <a href="/admin/tasks">Tasks${overdueBadge}</a>
         <a href="/admin/emails">Email log</a>
       </nav>
@@ -410,8 +413,9 @@ function adminFooter() {
   </footer>`;
 }
 
-function loginPage({ error } = {}) {
+function loginPage({ error, next } = {}) {
   const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const nextField = next ? `<input type="hidden" name="next" value="${escapeHtml(next)}">` : "";
   const body = `
   <main class="login-wrap">
     <section class="form-card login-card">
@@ -420,6 +424,7 @@ function loginPage({ error } = {}) {
       <p class="muted">Sign in to view and update leads.</p>
       ${err}
       <form method="post" action="/admin/login">
+        ${nextField}
         <div class="field">
           <label for="username">Username</label>
           <input id="username" name="username" type="text" required autocomplete="username">
@@ -520,7 +525,14 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
   const body = `
   ${adminHeader({ query, count, chrome })}
   <main class="wrap">
-    <h1 class="page-title">Leads</h1>
+    <div class="page-head">
+      <h1 class="page-title">Leads</h1>
+      <div class="page-actions">
+        <a class="btn small" href="/admin/leads/new">New lead</a>
+        <a class="btn small" href="/admin/leads/import">Import CSV</a>
+        <a class="btn small" href="/admin/leads/export.csv">Export CSV</a>
+      </div>
+    </div>
     ${clear}
     ${empty}
     ${
@@ -925,9 +937,176 @@ function dashboardPage({ stats, chrome }) {
   return layout({ title: `Dashboard | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
-function notFoundPage() {
-  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="/">Back to the inspection form</a></p></section></main>`;
-  return layout({ title: "Not found", body });
+function leadFields(values, errors) {
+  const v = (name) => escapeHtml(values[name] || "");
+  const invalid = (name) => (errors[name] ? " invalid" : "");
+  return `
+    <fieldset>
+      <legend>Contact</legend>
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input id="full_name" name="full_name" type="text" required maxlength="120" value="${v("full_name")}" class="${invalid("full_name")}">
+        ${fieldError(errors, "full_name")}
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" maxlength="30" value="${v("phone")}" class="${invalid("phone")}" placeholder="(555) 010-0148">
+          ${fieldError(errors, "phone")}
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" maxlength="120" value="${v("email")}" class="${invalid("email")}">
+          ${fieldError(errors, "email")}
+        </div>
+      </div>
+      <div class="field">
+        <label for="preferred_contact">Preferred contact method</label>
+        <select id="preferred_contact" name="preferred_contact" required class="${invalid("preferred_contact")}">
+          <option value="">Select one</option>
+          ${options(CONTACT_METHODS, values.preferred_contact)}
+        </select>
+        ${fieldError(errors, "preferred_contact")}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Property</legend>
+      <div class="field">
+        <label for="street">Street address</label>
+        <input id="street" name="street" type="text" required maxlength="160" value="${v("street")}" class="${invalid("street")}">
+        ${fieldError(errors, "street")}
+      </div>
+      <div class="three-col">
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" required maxlength="80" value="${v("city")}" class="${invalid("city")}">
+          ${fieldError(errors, "city")}
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <select id="state" name="state" required class="${invalid("state")}">
+            <option value="">Select</option>
+            ${options(US_STATES, values.state)}
+          </select>
+          ${fieldError(errors, "state")}
+        </div>
+        <div class="field">
+          <label for="zip">ZIP</label>
+          <input id="zip" name="zip" type="text" required maxlength="10" value="${v("zip")}" class="${invalid("zip")}">
+          ${fieldError(errors, "zip")}
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="property_type">Property type</label>
+          <select id="property_type" name="property_type" required class="${invalid("property_type")}">
+            <option value="">Select one</option>
+            ${options(PROPERTY_TYPES, values.property_type)}
+          </select>
+          ${fieldError(errors, "property_type")}
+        </div>
+        <div class="field">
+          <label for="roof_type">Roof type</label>
+          <select id="roof_type" name="roof_type" required class="${invalid("roof_type")}">
+            <option value="">Select one</option>
+            ${options(ROOF_TYPES, values.roof_type)}
+          </select>
+          ${fieldError(errors, "roof_type")}
+        </div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Job</legend>
+      <div class="two-col">
+        <div class="field">
+          <label for="service_needed">Service needed</label>
+          <select id="service_needed" name="service_needed" required class="${invalid("service_needed")}">
+            <option value="">Select one</option>
+            ${options(SERVICES, values.service_needed)}
+          </select>
+          ${fieldError(errors, "service_needed")}
+        </div>
+        <div class="field">
+          <label for="urgency">Urgency / timeline</label>
+          <select id="urgency" name="urgency" required class="${invalid("urgency")}">
+            <option value="">Select one</option>
+            ${options(URGENCIES, values.urgency)}
+          </select>
+          ${fieldError(errors, "urgency")}
+        </div>
+      </div>
+      <div class="field">
+        <label for="issue_description">Issue description</label>
+        <textarea id="issue_description" name="issue_description" rows="4" maxlength="4000" class="${invalid("issue_description")}">${v("issue_description")}</textarea>
+        ${fieldError(errors, "issue_description")}
+      </div>
+    </fieldset>`;
+}
+
+function newLeadPage({ values = {}, errors = {}, banner, status = "New", chrome } = {}) {
+  const bannerHtml = banner ? `<div class="banner error">${escapeHtml(banner)}</div>` : "";
+  const statusOptions = STATUSES.map(
+    (item) => `<option value="${escapeHtml(item)}"${item === status ? " selected" : ""}>${escapeHtml(item)}</option>`
+  ).join("");
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin/leads">← All leads</a></p>
+    <h1 class="page-title">New lead</h1>
+    <section class="form-card lead-form-card">
+      ${bannerHtml}
+      <form method="post" action="/admin/leads">
+        ${leadFields(values, errors)}
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status" name="status" required class="${errors.status ? " invalid" : ""}">${statusOptions}</select>
+          ${fieldError(errors, "status")}
+        </div>
+        <button type="submit" class="btn primary">Create lead</button>
+      </form>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `New lead | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function importPage({ chrome, error, imported = [], failures = [] } = {}) {
+  const errorHtml = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const resultHtml = imported.length || failures.length
+    ? `<div class="banner ok">Imported ${imported.length} lead${imported.length === 1 ? "" : "s"}.</div>
+       ${failures.length ? `<div class="banner error">${failures.length} row${failures.length === 1 ? "" : "s"} failed.</div>
+       <ul class="import-errors">${failures.map((item) => `<li>Row ${escapeHtml(item.row)}: ${escapeHtml(item.message)}</li>`).join("")}</ul>` : ""}
+       ${imported.length ? `<ul class="import-created">${imported.map((item) => `<li><a href="/admin/leads/${item.id}">${escapeHtml(item.name)}</a></li>`).join("")}</ul>` : ""}`
+    : "";
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin/leads">← All leads</a></p>
+    <h1 class="page-title">Import leads</h1>
+    <section class="form-card lead-form-card">
+      <p>Upload a CSV with a header row. Row numbers below count the header as row 1. Commas, quotes, and line breaks inside a field need to be quoted.</p>
+      <p class="muted">Columns: full_name, phone, email, street, city, state, zip, property_type, roof_type, service_needed, issue_description, urgency, preferred_contact, status. Status is optional and defaults to New. Allowed statuses: ${escapeHtml(STATUSES.join(", "))}.</p>
+      ${errorHtml}
+      ${resultHtml}
+      <form method="post" action="/admin/leads/import" enctype="multipart/form-data">
+        <div class="field">
+          <label for="file">CSV file</label>
+          <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+        </div>
+        <button type="submit" class="btn primary">Import CSV</button>
+      </form>
+      <p class="fine-print"><a href="/admin/leads/export.csv">Download the current leads as CSV</a></p>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Import leads | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function notFoundPage({ admin = false } = {}) {
+  const href = admin ? "/admin" : "/";
+  const label = admin ? "Back to the dashboard" : "Back to the inspection form";
+  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="${href}">${label}</a></p></section></main>`;
+  return layout({ title: "Not found", body, admin });
 }
 
 module.exports = {
@@ -944,5 +1123,7 @@ module.exports = {
   notificationsPage,
   emailLogPage,
   tasksPage,
+  newLeadPage,
+  importPage,
   notFoundPage,
 };

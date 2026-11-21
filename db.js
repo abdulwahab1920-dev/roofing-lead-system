@@ -6,7 +6,7 @@ const { APP_TIMEZONE } = require("./timezone");
 const DATA_DIR = path.join(__dirname, "data");
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, "leads.db");
 
-const STATUSES = ["New", "Contacted", "Quoted", "Won", "Lost"];
+const STATUSES = ["New", "Contacted", "Quoted", "Won", "Lost", "Cold"];
 
 const PROPERTY_TYPES = ["Residential", "Commercial"];
 
