@@ -1,4 +1,5 @@
 const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
+const { demoReseedEnabled } = require("./demo-seed");
 
 const {
   STATUSES,
@@ -378,6 +379,7 @@ function adminHeader({ query = "", count, chrome = {}, inboxOpen = false } = {})
         <a href="/admin/leads/export.csv">Export</a>
         <a href="/admin/tasks">Tasks${overdueBadge}</a>
         <a href="/admin/emails">Email log</a>
+        ${demoReseedEnabled() ? '<a href="/admin/reseed">Reseed</a>' : ""}
       </nav>
       <div class="header-actions">
         ${countLabel}
@@ -1102,6 +1104,33 @@ function importPage({ chrome, error, imported = [], failures = [] } = {}) {
   return layout({ title: `Import leads | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
+function reseedPage({ chrome, error, seeded } = {}) {
+  const done = seeded == null
+    ? ""
+    : `<div class="banner ok">Replaced the database with ${escapeHtml(seeded)} fictional demo leads. Follow-up dates are relative to today.</div>`;
+  const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin">← Dashboard</a></p>
+    <h1 class="page-title">Reseed demo data</h1>
+    <section class="form-card lead-form-card">
+      <div class="banner error">This deletes every lead, task, note, notification, email, and photo in this database, then loads fictional US demo leads. It does not change the admin password.</div>
+      ${done}
+      ${err}
+      <form method="post" action="/admin/reseed">
+        <div class="field">
+          <label for="confirm">Type RESEED to confirm</label>
+          <input id="confirm" name="confirm" type="text" autocomplete="off" required maxlength="20">
+        </div>
+        <button type="submit" class="btn primary">Replace demo data</button>
+      </form>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Reseed demo data | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
 function notFoundPage({ admin = false } = {}) {
   const href = admin ? "/admin" : "/";
   const label = admin ? "Back to the dashboard" : "Back to the inspection form";
@@ -1125,5 +1154,6 @@ module.exports = {
   tasksPage,
   newLeadPage,
   importPage,
+  reseedPage,
   notFoundPage,
 };

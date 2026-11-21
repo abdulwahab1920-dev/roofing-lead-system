@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { safeAdminNext, safeAdminReferer } = require("../safe-next");
 const { toCsv, recordsFromCsv, COLUMNS } = require("../csv");
 const { notFoundPage } = require("../views");
-const { buildSeedSchedule } = require("../demo-seed");
+const { buildSeedSchedule, demoReseedEnabled } = require("../demo-seed");
 const { scoreLead } = require("../ai/leadScorer");
 const { isPlausibleUsLocation } = require("../location");
 const tz = require("../timezone");
@@ -110,4 +110,14 @@ for (const lead of plan.filter((item) => item.status === "Cold")) {
   assert.equal(scoreLead(lead).priority, "Cold", lead.full_name + " should score Cold");
 }
 
-console.log("Fix tests passed: safe next, CSV escaping, admin 404 copy, and relative demo schedule.");
+const previousFlag = process.env.ALLOW_DEMO_RESEED;
+delete process.env.ALLOW_DEMO_RESEED;
+assert.equal(demoReseedEnabled(), false);
+process.env.ALLOW_DEMO_RESEED = "true";
+assert.equal(demoReseedEnabled(), false);
+process.env.ALLOW_DEMO_RESEED = " 1 ";
+assert.equal(demoReseedEnabled(), true);
+if (previousFlag == null) delete process.env.ALLOW_DEMO_RESEED;
+else process.env.ALLOW_DEMO_RESEED = previousFlag;
+
+console.log("Fix tests passed: safe next, CSV escaping, admin 404 copy, relative demo schedule, and reseed flag.");

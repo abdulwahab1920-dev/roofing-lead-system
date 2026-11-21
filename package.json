@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "reseed": "node demo-seed.js",
-    "test": "node tests/unit.js && node tests/fixes.js && node tests/smoke.js"
+    "test": "node tests/unit.js && node tests/fixes.js && node tests/smoke.js && node tests/reseed.js"
   },
   "engines": {
     "node": ">=22"

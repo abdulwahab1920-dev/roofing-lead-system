@@ -41,6 +41,7 @@ async function waitForServer(url, child) {
       SMTP_HOST: "",
       SEED_DEMO_DATA: "false",
       RESET_DEMO_DATA: "",
+      ALLOW_DEMO_RESEED: "",
       COMPANY_NAME: "Artific Creations Demo",
       APP_TIMEZONE: "America/Denver",
     },
@@ -383,7 +384,24 @@ async function waitForServer(url, child) {
     assert.match(publicMissingHtml, /Back to the inspection form/);
     assert.doesNotMatch(publicMissingHtml, /Back to the dashboard/);
 
-    console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, and admin 404.");
+    const reseedOff = await fetch(base + "/admin/reseed", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(reseedOff.status, 404, "Reseed must not exist unless ALLOW_DEMO_RESEED=1.");
+    const reseedPost = await fetch(base + "/admin/reseed", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded", "x-forwarded-proto": "https" },
+      body: new URLSearchParams({ confirm: "RESEED" }).toString(),
+    });
+    assert.equal(reseedPost.status, 404, "A disabled reseed POST must not run.");
+    const stillThere = await fetch(base + "/admin/leads", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.match(await stillThere.text(), /CI Smoke Test/, "Disabled reseed must leave existing leads in place.");
+    const dash = await fetch(base + "/admin", { headers: { cookie, "x-forwarded-proto": "https" } });
+    assert.doesNotMatch(await dash.text(), /href="\/admin\/reseed"/);
+
+    console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, admin 404, and disabled reseed.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {

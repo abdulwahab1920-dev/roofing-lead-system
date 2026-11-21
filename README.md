@@ -28,13 +28,15 @@ Sample leads are fictional US homeowners: `example.com` emails, `555-010` phone 
 
 Dates are calculated when the seed runs, relative to that moment. The task list then contains a mix of overdue, due today, upcoming, and completed follow-ups. Leads are spread across the last few weeks and the statuses New, Contacted, Quoted, Won, Lost, and Cold. Cold is both a status and, for the sample cold leads, the scoring priority.
 
-Startup applies this seed only when `RESET_DEMO_DATA` is set to a token the app has not applied before. To load the sample data again, which deletes existing leads, tasks, notes, notifications, emails, and photos:
+Startup applies this seed only when `RESET_DEMO_DATA` is set to a token the app has not applied before. To load the sample data again from a machine that has `DATABASE_URL`, which deletes existing leads, tasks, notes, notifications, emails, and photos:
 
 ```bash
 DATABASE_URL='postgres://…' npm run reseed
 ```
 
-Use the same `DATABASE_URL` the app uses. If `RESET_DEMO_DATA` is already set, the command stores that token so the next startup does not wipe the database a second time. Leave `RESET_DEMO_DATA` unset on a real customer install. Changing the token and restarting the app is the other way to reseed.
+That command keeps the current `RESET_DEMO_DATA` token when one is set, so the next startup does not wipe the database a second time. Leave `RESET_DEMO_DATA` unset on a real customer install.
+
+On Render, where there is no shell, an admin can reseed only while `ALLOW_DEMO_RESEED` is exactly `1`. The page is `POST /admin/reseed` after login, and the form requires the confirmation text `RESEED`. With the variable unset, that URL is a normal 404 and the nav link is hidden. Remove the variable and deploy again after the reseed so the action is no longer available.
 
 ## Free-tier hosting plan
 
