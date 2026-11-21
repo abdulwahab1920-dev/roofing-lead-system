@@ -165,6 +165,10 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
           ${thanks}
           ${bannerHtml}
           <form method="post" action="/pilot">
+            <div class="hp-field" aria-hidden="true">
+              <label for="pilot_leave_blank">Leave this blank</label>
+              <input id="pilot_leave_blank" name="leave_blank" type="text" tabindex="-1" autocomplete="off" value="">
+            </div>
             <div class="field">
               <label for="pilot_name">Your name</label>
               <input id="pilot_name" name="full_name" type="text" required maxlength="120" autocomplete="name" value="${v("full_name")}" class="${invalid("full_name")}">

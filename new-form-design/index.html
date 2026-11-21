@@ -65,6 +65,10 @@
         <div class="sr-only" aria-live="polite" id="announcer"></div>
 
         <form id="lead-form" method="post" action="/leads" novalidate enctype="multipart/form-data">
+          <div class="hp-field" aria-hidden="true">
+            <label for="leave_blank">Leave this blank</label>
+            <input id="leave_blank" name="leave_blank" type="text" tabindex="-1" autocomplete="off" value="">
+          </div>
           <div class="err-summary" id="err-summary" tabindex="-1" hidden>
             <p><strong>Please check the highlighted fields</strong></p>
             <ul id="err-list"></ul>

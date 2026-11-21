@@ -439,6 +439,7 @@ input.invalid, select.invalid, textarea.invalid { border-color: #b42318; }
 .check-line a { color: var(--copper-dark); font-weight: 700; }
 .consent-copy { overflow-wrap: anywhere; }
 .opt { font-weight: 500; color: var(--muted); font-size: 0.85rem; }
+.hp-field { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
 .market-hero {
   background:

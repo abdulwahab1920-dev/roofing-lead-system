@@ -144,6 +144,10 @@ function formPage({ values = {}, errors = {}, banner, smsConsent = false } = {})
       <h2>Get in touch</h2>
       ${bannerHtml}
       <form method="post" action="/leads" novalidate>
+        <div class="hp-field" aria-hidden="true">
+          <label for="leave_blank">Leave this blank</label>
+          <input id="leave_blank" name="leave_blank" type="text" tabindex="-1" autocomplete="off" value="">
+        </div>
         <fieldset>
           <legend>Contact</legend>
           <div class="field">

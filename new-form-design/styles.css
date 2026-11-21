@@ -191,6 +191,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var
 .check-copy{margin:0}
 .check-line a{color:var(--copper-dark);font-weight:700;text-underline-offset:2px}
 .foot a{color:#f6c9a6;font-weight:700}
+.hp-field{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .foot-links{display:flex;gap:8px;flex-wrap:wrap}
 
 /* error summary */

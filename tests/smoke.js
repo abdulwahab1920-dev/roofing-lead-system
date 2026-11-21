@@ -62,6 +62,7 @@ async function waitForServer(url, child) {
     assert.match(homeHtml, /\$99/);
     assert.match(homeHtml, /14-day/);
     assert.match(homeHtml, /href="\/inspection"/);
+    assert.match(homeHtml, /name="leave_blank"/);
     assert.match(homeHtml, /href="\/privacy"/);
     assert.match(homeHtml, /href="\/terms"/);
     assert.doesNotMatch(homeHtml, /testimonial|trusted by \d|customers and counting/i);
@@ -89,6 +90,7 @@ async function waitForServer(url, child) {
     assert.match(formHtml, /Roof inspection/);
     assert.match(formHtml, /name="photos"/);
     assert.match(formHtml, /name="sms_consent"/);
+    assert.match(formHtml, /name="leave_blank"/);
     assert.match(formHtml, /Reply STOP/);
     assert.match(formHtml, /not a condition of purchase/i);
     assert.match(formHtml, /href="\/privacy"/);
@@ -502,6 +504,84 @@ async function waitForServer(url, child) {
       headers: { cookie, "x-forwarded-proto": "https" },
     });
     assert.match(await pilotNotes.text(), /Pilot request: Pilot Roofing/);
+
+    const honeypotLead = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Honeypot Lead", phone: "(303) 555-0161", preferred_contact: "Phone",
+      street: "61 Trap Street", city: "Denver", state: "CO", zip: "80206",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week", leave_blank: "https://spam.example",
+    })) honeypotLead.append(key, value);
+    const honeypotLeadResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: honeypotLead,
+    });
+    assert.equal(honeypotLeadResponse.status, 400, "A filled honeypot should be rejected.");
+    const honeypotLeadBody = await honeypotLeadResponse.json();
+    assert.match(honeypotLeadBody.message, /could not accept this submission/i);
+    const honeypotList = await fetch(base + "/admin/leads", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await honeypotList.text(), /Honeypot Lead/);
+
+    const limitedLead = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Rate Limited Lead", email: "limited-lead@example.com", preferred_contact: "Email",
+      street: "62 Trap Street", city: "Denver", state: "CO", zip: "80206",
+      property_type: "Residential", roof_type: "Metal", service_needed: "Roof inspection / estimate",
+      urgency: "This month",
+    })) limitedLead.append(key, value);
+    const limitedLeadResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: limitedLead,
+    });
+    assert.equal(limitedLeadResponse.status, 429, "The sixth public lead submission in 10 minutes should wait.");
+    const limitedLeadBody = await limitedLeadResponse.json();
+    assert.match(limitedLeadBody.message, /wait a few minutes/i);
+    const limitedList = await fetch(base + "/admin/leads", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await limitedList.text(), /Rate Limited Lead/);
+
+    const honeypotPilot = await fetch(base + "/pilot", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        full_name: "Spam Pilot",
+        email: "spam-pilot@example.com",
+        company_name: "Spam Roofing",
+        leave_blank: "filled",
+      }).toString(),
+    });
+    assert.equal(honeypotPilot.status, 400, "A filled pilot honeypot should be rejected.");
+    assert.match(await honeypotPilot.text(), /could not accept this submission/i);
+    const honeypotPilotNotes = await fetch(base + "/admin/notifications", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await honeypotPilotNotes.text(), /Spam Roofing/);
+
+    for (let i = 0; i < 3; i += 1) {
+      const extraPilot = await fetch(base + "/pilot", {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          full_name: "Extra Pilot " + i,
+          email: `extra-pilot-${i}@example.com`,
+          company_name: "Extra Roofing " + i,
+        }).toString(),
+      });
+      assert.equal(extraPilot.status, 303, "Pilot requests under the limit should be stored.");
+    }
+    const limitedPilot = await fetch(base + "/pilot", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        full_name: "Blocked Pilot",
+        email: "blocked-pilot@example.com",
+        company_name: "Blocked Roofing",
+      }).toString(),
+    });
+    assert.equal(limitedPilot.status, 429, "The sixth pilot request in 10 minutes should wait.");
+    assert.match(await limitedPilot.text(), /wait a few minutes/i);
 
     console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, admin 404, disabled reseed, and pilot request.");
   } finally {
