@@ -110,3 +110,29 @@ CREATE INDEX IF NOT EXISTS idx_leads_priority ON leads(ai_priority);
 CREATE INDEX IF NOT EXISTS idx_notes_lead_created ON notes(lead_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due_at);
+
+CREATE TABLE IF NOT EXISTS billing_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS billing_subscriptions (
+  id BIGSERIAL PRIMARY KEY,
+  paddle_customer_id TEXT NOT NULL,
+  paddle_subscription_id TEXT NOT NULL UNIQUE,
+  price_id TEXT,
+  plan_name TEXT,
+  status TEXT,
+  trial_end TEXT,
+  current_period_end TEXT,
+  scheduled_cancel TEXT,
+  updated_at TEXT NOT NULL,
+  raw_last_event_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS billing_events (
+  event_id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  received_at TEXT NOT NULL
+);

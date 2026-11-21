@@ -1,5 +1,5 @@
 const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
-const { LEGAL, smsConsentLeadIn } = require("./legal");
+const { LEGAL, REFUND_DAYS, PADDLE_ORDER_SENTENCE, smsConsentLeadIn } = require("./legal");
 const { demoReseedEnabled } = require("./demo-seed");
 
 const {
@@ -398,6 +398,7 @@ function adminHeader({ query = "", count, chrome = {}, inboxOpen = false } = {})
         <a href="/admin/tasks">Tasks${overdueBadge}</a>
         <a href="/admin/emails">Email log</a>
         ${demoReseedEnabled() ? '<a href="/admin/reseed">Reseed</a>' : ""}
+        ${chrome.paddleEnabled ? '<a href="/admin/billing">Billing</a>' : ""}
       </nav>
       <div class="header-actions">
         ${countLabel}
@@ -1162,6 +1163,165 @@ function consentFacts(lead) {
           <div><dt>Consent IP address</dt><dd>${escapeHtml(lead.sms_consent_ip || "—")}</dd></div>`;
 }
 
+function yesNo(value) {
+  return value ? "Yes" : "No";
+}
+
+function billingPage({ chrome, presence, publicBaseUrl, webhookUrl, environment, subscriptions = [], error, done }) {
+  const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const ok = done ? `<div class="banner ok">Paddle catalog saved. Stored ids are not shown on this page.</div>` : "";
+  const rows = subscriptions.length
+    ? subscriptions.map((row) => `<tr>
+        <td>${escapeHtml(row.plan_name || "—")}</td>
+        <td>${escapeHtml(row.status || "—")}</td>
+        <td>${escapeHtml(row.trial_end || "—")}</td>
+        <td>${escapeHtml(row.current_period_end || "—")}</td>
+        <td>${escapeHtml(row.scheduled_cancel || "—")}</td>
+        <td>
+          <form method="post" action="/admin/billing/portal">
+            <input type="hidden" name="customer_id" value="${escapeHtml(row.paddle_customer_id)}">
+            <input type="hidden" name="subscription_id" value="${escapeHtml(row.paddle_subscription_id)}">
+            <button type="submit" class="btn small secondary">Customer portal</button>
+          </form>
+        </td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="muted">No subscription events yet. Existing CRM features stay available either way.</td></tr>`;
+  const liveField = environment === "sandbox"
+    ? ""
+    : `<div class="field"><label for="confirm_live">Type PRODUCTION to allow a live catalog change</label><input id="confirm_live" name="confirm_live" type="text" autocomplete="off" maxlength="20"></div>`;
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin">← Dashboard</a></p>
+    <h1 class="page-title">Billing</h1>
+    <p class="muted">Subscription status is recorded here. It does not lock any CRM page.</p>
+    ${err}${ok}
+    <section class="form-card">
+      <h2>Configuration</h2>
+      <dl class="facts">
+        <div><dt>API key set</dt><dd>${yesNo(presence.apiKey)}</dd></div>
+        <div><dt>Client token set</dt><dd>${yesNo(presence.clientToken)}</dd></div>
+        <div><dt>Sandbox environment</dt><dd>${yesNo(presence.sandbox)}</dd></div>
+        <div><dt>Product stored</dt><dd>${yesNo(presence.product)}</dd></div>
+        <div><dt>Starter price stored</dt><dd>${yesNo(presence.starterPrice)}</dd></div>
+        <div><dt>Team price stored</dt><dd>${yesNo(presence.teamPrice)}</dd></div>
+        <div><dt>Webhook destination stored</dt><dd>${yesNo(presence.notification)}</dd></div>
+        <div><dt>Webhook secret stored</dt><dd>${yesNo(presence.webhookSecret)}</dd></div>
+      </dl>
+      <p>Public site URL used for the webhook: <strong>${escapeHtml(publicBaseUrl)}</strong></p>
+      <p class="muted">Webhook destination: ${escapeHtml(webhookUrl)}</p>
+    </section>
+    <section class="form-card">
+      <h2>Set up Paddle sandbox catalog</h2>
+      <p>This creates one product, the $49.00 and $99.00 monthly prices with a 14-day card trial, and the webhook destination. Running it again reuses matching records.</p>
+      <form method="post" action="/admin/billing/setup">
+        <div class="field">
+          <label for="confirm">Type SETUP to confirm</label>
+          <input id="confirm" name="confirm" type="text" autocomplete="off" required maxlength="20">
+        </div>
+        ${liveField}
+        <button type="submit" class="btn primary">Set up Paddle sandbox catalog</button>
+      </form>
+    </section>
+    <section class="form-card">
+      <h2>Subscriptions</h2>
+      <div class="table-wrap flat">
+        <table class="leads-table compact">
+          <thead><tr><th>Plan</th><th>Status</th><th>Trial end</th><th>Period end</th><th>Scheduled cancel</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Billing | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function subscribePage({ starterPriceId, teamPriceId, clientToken, sandbox }) {
+  const ready = Boolean(starterPriceId && teamPriceId && clientToken);
+  const banner = sandbox ? `<p class="banner ok">Test mode, no real charges</p>` : "";
+  const checkout = ready
+    ? `<div class="hero-actions">
+        <button type="button" class="btn secondary" id="pay-starter" disabled>Pay for Starter, $49/month</button>
+        <button type="button" class="btn secondary" id="pay-team" disabled>Pay for Team, $99/month</button>
+      </div>`
+    : `<p class="banner error">Checkout is not ready yet. The Paddle catalog or client token is missing.</p>`;
+  const script = ready
+    ? `<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+      <script>
+        const paddleConfig = ${JSON.stringify({
+          sandbox,
+          token: clientToken,
+          starterPriceId,
+          teamPriceId,
+          successUrl: "/subscribe/thanks",
+        })};
+        if (paddleConfig.sandbox) Paddle.Environment.set("sandbox");
+        Paddle.Initialize({ token: paddleConfig.token });
+        const accept = document.getElementById("accept-terms");
+        const buttons = [document.getElementById("pay-starter"), document.getElementById("pay-team")];
+        accept.addEventListener("change", () => { buttons.forEach((button) => { button.disabled = !accept.checked; }); });
+        function openCheckout(priceId) {
+          if (!accept.checked) return;
+          Paddle.Checkout.open({
+            items: [{ priceId: priceId, quantity: 1 }],
+            settings: { successUrl: window.location.origin + paddleConfig.successUrl }
+          });
+        }
+        document.getElementById("pay-starter").addEventListener("click", () => openCheckout(paddleConfig.starterPriceId));
+        document.getElementById("pay-team").addEventListener("click", () => openCheckout(paddleConfig.teamPriceId));
+      </script>`
+    : "";
+  const body = `
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo-link" href="/"><span class="logo-text"><strong>${escapeHtml(LEGAL.productName)}</strong><span>${escapeHtml(LEGAL.vendorName)}</span></span></a>
+      <nav class="public-nav" aria-label="Product">
+        <a href="/terms">Terms</a>
+        <a href="/refunds">Refunds</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap legal-doc">
+    ${banner}
+    <p class="eyebrow">Subscribe</p>
+    <h1>Roofing Lead CRM</h1>
+    <p>Monthly subscription. $49/month (2 users) or $99/month (5 users). Each plan starts with a 14-day free trial, and a card is required to start that trial. The subscription auto-renews monthly until you cancel. You can cancel any time.</p>
+    <p>If you request it within ${REFUND_DAYS} days of the first charge, you receive a full refund of that subscription payment. <a href="/refunds">Refund Policy</a>.</p>
+    <p>${escapeHtml(PADDLE_ORDER_SENTENCE)}</p>
+    <p>Payments are processed by Paddle. Read the <a href="/terms">Terms</a> and the <a href="/refunds">Refunds</a> before you pay.</p>
+    <section class="price-grid">
+      <article class="price-card"><h2>Starter, 2 users</h2><p class="price"><strong>$49.00</strong><span>/month</span></p><p>14-day free trial. Card required.</p></article>
+      <article class="price-card price-crew"><h2>Team, 5 users</h2><p class="price"><strong>$99.00</strong><span>/month</span></p><p>14-day free trial. Card required.</p></article>
+    </section>
+    <label class="check-line" for="accept-terms">
+      <input id="accept-terms" type="checkbox">
+      <span>I accept the <a href="/terms">Terms</a> and <a href="/refunds">Refund Policy</a>.</span>
+    </label>
+    ${checkout}
+  </main>
+  ${publicFooter()}
+  ${script}`;
+  return layout({ title: `Subscribe | ${LEGAL.productName}`, body });
+}
+
+function subscribeThanksPage({ sandbox }) {
+  const banner = sandbox ? `<p class="banner ok">Test mode, no real charges</p>` : "";
+  const body = `
+  <header class="site-header"><div class="wrap header-inner"><a class="logo-link" href="/"><strong>${escapeHtml(LEGAL.productName)}</strong></a></div></header>
+  <main class="wrap narrow">
+    <section class="form-card thanks">
+      ${banner}
+      <p class="eyebrow">Subscription</p>
+      <h1>Thanks. Paddle has the checkout.</h1>
+      <p>If the checkout finished, Paddle will send the subscription to this site. You can cancel any time. A full refund of the first charge is available for ${REFUND_DAYS} days. See the <a href="/refunds">Refund Policy</a>.</p>
+      <p><a href="/" class="btn secondary">Back to the product page</a></p>
+    </section>
+  </main>
+  ${publicFooter()}`;
+  return layout({ title: `Thanks | ${LEGAL.productName}`, body });
+}
+
 function notFoundPage({ admin = false } = {}) {
   const href = admin ? "/admin" : "/inspection";
   const label = admin ? "Back to the dashboard" : "Back to the inspection form";
@@ -1198,4 +1358,7 @@ module.exports = {
   privacyPage,
   termsPage,
   refundsPage,
+  billingPage,
+  subscribePage,
+  subscribeThanksPage,
 };
