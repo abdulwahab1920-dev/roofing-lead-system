@@ -1,6 +1,6 @@
 const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
+const { LEGAL, smsConsentLeadIn } = require("./legal");
 const { demoReseedEnabled } = require("./demo-seed");
-const { smsConsentLeadIn } = require("./legal");
 
 const {
   STATUSES,
@@ -84,10 +84,15 @@ function logoMark() {
   </span>`;
 }
 
+function supportPhoneHref() {
+  return "tel:" + String(LEGAL.supportPhone).replace(/[^\d+]/g, "");
+}
+
 function publicFooter() {
   return `<footer class="site-footer">
-    <p>© 2026 ${escapeHtml(COMPANY_NAME)}${COMPANY_LOCATION ? " · " + escapeHtml(COMPANY_LOCATION) : ""}</p>
-    <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/">For roofing companies</a></p>
+    <p>© 2026 ${escapeHtml(LEGAL.vendorName)}</p>
+    <p class="legal-identity">${escapeHtml(LEGAL.legalName)}, sole proprietor · <a href="${escapeHtml(supportPhoneHref())}">${escapeHtml(LEGAL.supportPhone)}</a> · <a href="mailto:${escapeHtml(LEGAL.supportEmail)}">${escapeHtml(LEGAL.supportEmail)}</a></p>
+    <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a> · <a href="/">For roofing companies</a></p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -472,7 +477,8 @@ function loginPage({ error, next } = {}) {
         </div>
         <button type="submit" class="btn primary">Sign in</button>
       </form>
-      <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+      <p class="legal-identity">${escapeHtml(LEGAL.legalName)}, sole proprietor · <a href="${escapeHtml(supportPhoneHref())}">${escapeHtml(LEGAL.supportPhone)}</a></p>
+      <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a></p>
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
@@ -1163,7 +1169,7 @@ function notFoundPage({ admin = false } = {}) {
   return layout({ title: "Not found", body, admin });
 }
 
-const { landingPage, privacyPage, termsPage } = require("./public-pages")({
+const { landingPage, privacyPage, termsPage, refundsPage } = require("./public-pages")({
   layout,
   escapeHtml,
   publicFooter,
@@ -1191,4 +1197,5 @@ module.exports = {
   landingPage,
   privacyPage,
   termsPage,
+  refundsPage,
 };

@@ -1,20 +1,25 @@
 "use strict";
 
-// TODO: A lawyer should review the Privacy Policy (/privacy) and the Terms
-// of Service (/terms) before launch. The copy in this file is a plain-language
-// draft for a US roofing CRM pilot. It is not legal advice.
+// TODO: A lawyer should review the Privacy Policy (/privacy), the Terms
+// of Service (/terms), and the Refund Policy (/refunds) before launch.
+// The copy in this file is a plain-language draft for a US roofing CRM pilot.
+// It is not legal advice.
 //
-// Change the contact addresses in LEGAL only. Do not scatter replacements
-// through the pages.
+// Business details live in LEGAL. The refund window is REFUND_DAYS.
+// Change them here only. Do not scatter replacements through the pages.
 
 const LEGAL = {
-  contactEmail: "legal@artificcreations.example",
-  privacyEmail: "privacy@artificcreations.example",
-  pilotsEmail: "pilots@artificcreations.example",
+  legalName: "Abdul Wahab",
   vendorName: "Artific Creations",
   productName: "Roofing Lead CRM",
+  supportPhone: "+92 3353392279",
+  supportEmail: "abdulwahab@artificcreations.com",
   updated: "November 21, 2026",
 };
+
+const REFUND_DAYS = 7;
+
+const PADDLE_ORDER_SENTENCE = "Our order process is conducted by our online reseller Paddle.com. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns.";
 
 const SMS_CONSENT_VERSION = "2026-11-v1";
 
@@ -57,6 +62,8 @@ function smsConsentHtml(companyName) {
 
 module.exports = {
   LEGAL,
+  REFUND_DAYS,
+  PADDLE_ORDER_SENTENCE,
   SMS_CONSENT_VERSION,
   smsConsentLeadIn,
   smsConsentText,

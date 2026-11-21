@@ -15,6 +15,7 @@ Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 - Public inspection form: `/inspection`
 - Privacy: `/privacy`
 - Terms: `/terms`
+- Refunds: `/refunds`
 - Pilot request: `POST /pilot` (stored in the database and the staff notifications list)
 - CRM login: `/admin/login`
 - Dashboard: `/admin`

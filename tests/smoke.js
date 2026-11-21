@@ -6,6 +6,15 @@ const { mkdtemp, rm } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { randomInt } = require("node:crypto");
+const { LEGAL, REFUND_DAYS, PADDLE_ORDER_SENTENCE } = require("../legal");
+
+function assertPublicSeller(html, label) {
+  assert.equal(html.includes(LEGAL.legalName), true, label + " should name the seller.");
+  assert.equal(html.includes(LEGAL.supportPhone), true, label + " should show the support phone.");
+  assert.equal(html.includes(LEGAL.supportEmail), true, label + " should show the support email.");
+  assert.doesNotMatch(html, /artificcreations\.example/, label + " should not show a placeholder email.");
+  assert.match(html, /href="\/refunds"/, label + " should link to the refund policy.");
+}
 
 async function waitForServer(url, child) {
   const deadline = Date.now() + 15000;
@@ -60,8 +69,14 @@ async function waitForServer(url, child) {
     assert.match(homeHtml, /Never lose a website or storm lead/);
     assert.match(homeHtml, /\$49/);
     assert.match(homeHtml, /\$99/);
-    assert.match(homeHtml, /14-day/);
+    assert.match(homeHtml, /14-day free trial/);
+    assert.match(homeHtml, /\$49\/month \(2 users\)/);
+    assert.match(homeHtml, /\$99\/month \(5 users\)/);
+    assert.match(homeHtml, /card is required/);
+    assert.match(homeHtml, /auto-renews monthly/);
+    assert.match(homeHtml, /Payments are processed by Paddle/);
     assert.match(homeHtml, /href="\/inspection"/);
+    assertPublicSeller(homeHtml, "landing");
     assert.match(homeHtml, /name="leave_blank"/);
     assert.match(homeHtml, /href="\/privacy"/);
     assert.match(homeHtml, /href="\/terms"/);
@@ -71,18 +86,36 @@ async function waitForServer(url, child) {
     assert.equal(privacy.status, 200, "Privacy policy should load.");
     const privacyHtml = await privacy.text();
     assert.match(privacyHtml, /Privacy Policy/);
-    assert.match(privacyHtml, /privacy@artificcreations\.example/);
     assert.match(privacyHtml, /href="\/terms"/);
     assert.match(privacyHtml, /roof\.sid/);
+    assertPublicSeller(privacyHtml, "privacy");
 
     const terms = await fetch(base + "/terms");
     assert.equal(terms.status, 200, "Terms of service should load.");
     const termsHtml = await terms.text();
     assert.match(termsHtml, /Terms of Service/);
-    assert.match(termsHtml, /legal@artificcreations\.example/);
-    assert.match(termsHtml, /14-day/);
-    assert.match(termsHtml, /Cancel anytime/);
+    assert.match(termsHtml, /14-day free trial/);
+    assert.match(termsHtml, /\$49\/month \(2 users\)/);
+    assert.match(termsHtml, /\$99\/month \(5 users\)/);
+    assert.match(termsHtml, /card is required/);
+    assert.match(termsHtml, /auto-renews monthly/);
+    assert.match(termsHtml, /cancel any time/i);
+    assert.match(termsHtml, /must accept these Terms and the/);
     assert.match(termsHtml, /href="\/privacy"/);
+    assert.match(termsHtml, /href="\/refunds"/);
+    assert.equal(termsHtml.includes(PADDLE_ORDER_SENTENCE), true, "Terms must include the Paddle merchant sentence.");
+    assert.match(termsHtml, new RegExp(REFUND_DAYS + " days"));
+    assertPublicSeller(termsHtml, "terms");
+
+    const refunds = await fetch(base + "/refunds");
+    assert.equal(refunds.status, 200, "Refund policy should load.");
+    const refundsHtml = await refunds.text();
+    assert.match(refundsHtml, /Refund Policy/);
+    assert.match(refundsHtml, new RegExp("within " + REFUND_DAYS + " days of the first charge"));
+    assert.match(refundsHtml, /full refund of the subscription payment/i);
+    assert.match(refundsHtml, /Paddle\.com handles returns/);
+    assert.doesNotMatch(refundsHtml, /all sales final/i);
+    assertPublicSeller(refundsHtml, "refunds");
 
     const form = await fetch(base + "/inspection");
     assert.equal(form.status, 200, "Public lead form should load.");
@@ -95,6 +128,8 @@ async function waitForServer(url, child) {
     assert.match(formHtml, /not a condition of purchase/i);
     assert.match(formHtml, /href="\/privacy"/);
     assert.match(formHtml, /href="\/terms"/);
+    assert.match(formHtml, /href="\/refunds"/);
+    assertPublicSeller(formHtml, "inspection");
     assert.match(formHtml, /Artific Creations Demo/);
     assert.doesNotMatch(formHtml, /name="sms_consent"[^>]*checked/);
     assert.doesNotMatch(formHtml, /INTERACTIVE DEMO|fictional test details/i);
