@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, free-tier-postgres-resend]
   push:
     branches: [production-hardening, free-tier-postgres-resend]
 

@@ -1,16 +1,6 @@
-const DEMO_MODE = process.env.DEMO_MODE !== "false";
-const COMPANY_NAME = DEMO_MODE
-  ? process.env.DEMO_COMPANY_NAME || "Sample Roofing Company"
-  : process.env.COMPANY_NAME || "Your Roofing Company";
-const COMPANY_PHONE = DEMO_MODE
-  ? process.env.DEMO_COMPANY_PHONE || ""
-  : process.env.COMPANY_PHONE || "";
-const COMPANY_LOCATION = DEMO_MODE
-  ? process.env.DEMO_COMPANY_LOCATION || ""
-  : process.env.COMPANY_LOCATION || "";
-const SERVICE_AREA = DEMO_MODE
-  ? process.env.DEMO_SERVICE_AREA || "Example service area"
-  : process.env.SERVICE_AREA || "Your local service area";
+const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
+const { LEGAL, REFUND_DAYS, PADDLE_ORDER_SENTENCE, smsConsentLeadIn } = require("./legal");
+const { demoReseedEnabled } = require("./demo-seed");
 
 const {
   STATUSES,
@@ -21,6 +11,7 @@ const {
   CONTACT_METHODS,
   US_STATES,
 } = require("./db-postgres");
+const { APP_TIMEZONE, timeZoneAbbr, ymd } = require("./timezone");
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -34,21 +25,23 @@ function escapeHtml(value) {
 function formatDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(d);
+  const abbr = timeZoneAbbr(d);
+  return abbr ? `${formatted} ${abbr}` : formatted;
 }
 
 function formatDateShort(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -67,6 +60,9 @@ function layout({ title, body, admin = false }) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(title)}</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="shortcut icon" href="/favicon.ico">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="${admin ? "admin" : "public"}">
@@ -88,9 +84,15 @@ function logoMark() {
   </span>`;
 }
 
+function supportPhoneHref() {
+  return "tel:" + String(LEGAL.supportPhone).replace(/[^\d+]/g, "");
+}
+
 function publicFooter() {
   return `<footer class="site-footer">
-    <p>© 2026 ${escapeHtml(COMPANY_NAME)}${COMPANY_LOCATION ? " · " + escapeHtml(COMPANY_LOCATION) : ""}</p>
+    <p>© 2026 ${escapeHtml(LEGAL.vendorName)}</p>
+    <p class="legal-identity">${escapeHtml(LEGAL.legalName)}, sole proprietor · <a href="${escapeHtml(supportPhoneHref())}">${escapeHtml(LEGAL.supportPhone)}</a> · <a href="mailto:${escapeHtml(LEGAL.supportEmail)}">${escapeHtml(LEGAL.supportEmail)}</a></p>
+    <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a> · <a href="/">For roofing companies</a></p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -111,7 +113,7 @@ function fieldError(errors, name) {
   return `<p class="field-error">${escapeHtml(errors[name])}</p>`;
 }
 
-function formPage({ values = {}, errors = {}, banner } = {}) {
+function formPage({ values = {}, errors = {}, banner, smsConsent = false } = {}) {
   const v = (name) => escapeHtml(values[name] || "");
   const invalid = (name) => (errors[name] ? " invalid" : "");
   const bannerHtml = banner
@@ -147,6 +149,10 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
       <h2>Get in touch</h2>
       ${bannerHtml}
       <form method="post" action="/leads" novalidate>
+        <div class="hp-field" aria-hidden="true">
+          <label for="leave_blank">Leave this blank</label>
+          <input id="leave_blank" name="leave_blank" type="text" tabindex="-1" autocomplete="off" value="">
+        </div>
         <fieldset>
           <legend>Contact</legend>
           <div class="field">
@@ -250,8 +256,15 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
           </div>
         </fieldset>
 
+        <div class="field">
+          <div class="check-line">
+            <input id="sms_consent" name="sms_consent" type="checkbox" value="yes"${smsConsent ? " checked" : ""}>
+            <p class="check-copy"><label for="sms_consent">${escapeHtml(smsConsentLeadIn(COMPANY_NAME))}</label><a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+          </div>
+          ${fieldError(errors, "sms_consent")}
+        </div>
         <button type="submit" class="btn primary">Submit request</button>
-        <p class="fine-print">By submitting, you agree to be contacted about this request. We don’t sell your information.</p>
+        <p class="fine-print">The consent box is required when you ask us to text you. We don’t sell your information. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
       </form>
     </section>
   </main>
@@ -270,11 +283,11 @@ function thanksPage() {
   <main class="wrap narrow">
     <section class="form-card thanks">
       <p class="eyebrow">Request received</p>
-      <h1>Thank you. We’ll be in touch.</h1>
+      <h1>${DEMO_MODE ? "Your demo request is saved." : "Thank you. We’ll be in touch."}</h1>
       <p>${DEMO_MODE
         ? "Your sample request has been saved in the demonstration CRM. No roofing company will contact you."
         : "Your inspection request has been saved. Our team will follow up by your preferred contact method."}</p>
-      <p><a href="/" class="btn secondary">Submit another request</a></p>
+      <p><a href="/inspection" class="btn secondary">Submit another request</a></p>
     </section>
   </main>
   ${publicFooter()}`;
@@ -282,18 +295,7 @@ function thanksPage() {
 }
 
 function denverYmd(iso) {
-  const d = iso instanceof Date ? iso : new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const parts = {};
-  for (const p of new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d)) {
-    parts[p.type] = p.value;
-  }
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  return ymd(iso);
 }
 
 function formatDateTimeLocal(iso) {
@@ -301,7 +303,7 @@ function formatDateTimeLocal(iso) {
   if (Number.isNaN(d.getTime())) return "";
   const parts = {};
   for (const p of new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Denver",
+    timeZone: APP_TIMEZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -390,8 +392,13 @@ function adminHeader({ query = "", count, chrome = {}, inboxOpen = false } = {})
       <nav class="admin-nav">
         <a href="/admin">Dashboard</a>
         <a href="/admin/leads">Leads</a>
+        <a href="/admin/leads/new">New lead</a>
+        <a href="/admin/leads/import">Import</a>
+        <a href="/admin/leads/export.csv">Export</a>
         <a href="/admin/tasks">Tasks${overdueBadge}</a>
         <a href="/admin/emails">Email log</a>
+        ${demoReseedEnabled() ? '<a href="/admin/reseed">Reseed</a>' : ""}
+        ${chrome.paddleEnabled ? '<a href="/admin/billing">Billing</a>' : ""}
       </nav>
       <div class="header-actions">
         ${countLabel}
@@ -427,8 +434,9 @@ function adminFooter() {
   </footer>`;
 }
 
-function loginPage({ error } = {}) {
+function loginPage({ error, next } = {}) {
   const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const nextField = next ? `<input type="hidden" name="next" value="${escapeHtml(next)}">` : "";
   const body = `
   <main class="login-wrap">
     <section class="form-card login-card">
@@ -437,15 +445,16 @@ function loginPage({ error } = {}) {
       <p class="muted">Sign in to view and update leads.</p>
       ${err}
       <form method="post" action="/admin/login">
+        ${nextField}
         <div class="field">
           <label for="username">Username</label>
           <input id="username" name="username" type="text" required autocomplete="username">
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <div class="password-field" style="position:relative">
-            <input id="password" name="password" type="password" required autocomplete="current-password" style="padding-right:3.25rem">
-            <button type="button" id="toggle-password" aria-label="Show password" aria-pressed="false" style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);border:0;background:transparent;color:inherit;cursor:pointer;padding:.4rem;display:grid;place-items:center">
+          <div class="password-field">
+            <input id="password" name="password" type="password" required autocomplete="current-password">
+            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password" aria-pressed="false">
               <svg id="password-eye" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>
@@ -469,6 +478,8 @@ function loginPage({ error } = {}) {
         </div>
         <button type="submit" class="btn primary">Sign in</button>
       </form>
+      <p class="legal-identity">${escapeHtml(LEGAL.legalName)}, sole proprietor · <a href="${escapeHtml(supportPhoneHref())}">${escapeHtml(LEGAL.supportPhone)}</a></p>
+      <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a></p>
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
@@ -537,7 +548,14 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
   const body = `
   ${adminHeader({ query, count, chrome })}
   <main class="wrap">
-    <h1 class="page-title">Leads</h1>
+    <div class="page-head">
+      <h1 class="page-title">Leads</h1>
+      <div class="page-actions">
+        <a class="btn small" href="/admin/leads/new">New lead</a>
+        <a class="btn small" href="/admin/leads/import">Import CSV</a>
+        <a class="btn small" href="/admin/leads/export.csv">Export CSV</a>
+      </div>
+    </div>
     ${clear}
     ${empty}
     ${
@@ -569,7 +587,7 @@ function listPage({ leads, query, count, chrome, filterLabel }) {
 
 function aiPanel(lead) {
   const scored = lead.ai_score !== null && lead.ai_score !== undefined;
-  const source = lead.ai_source === "openai" ? "OpenAI-assisted" : "Offline scoring";
+  const source = lead.ai_source === "openai" ? "AI-assisted scoring" : "AI rules engine";
   const when = lead.ai_scored_at ? ` · ${formatDate(lead.ai_scored_at)}` : "";
   const body = scored
     ? `<div class="ai-metrics">
@@ -596,7 +614,7 @@ function aiPanel(lead) {
     </section>`;
 }
 
-function detailPage({ lead, notes, error, tasks = [], chrome }) {
+function detailPage({ lead, notes, error, tasks = [], photos = [], chrome }) {
   const statusOptions = STATUSES.map(
     (s) =>
       `<option value="${escapeHtml(s)}"${lead.status === s ? " selected" : ""}>${escapeHtml(s)}</option>`
@@ -645,6 +663,7 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
           <div><dt>Phone</dt><dd>${escapeHtml(lead.phone)}</dd></div>
           <div><dt>Email</dt><dd>${escapeHtml(lead.email)}</dd></div>
           <div><dt>Preferred contact</dt><dd>${escapeHtml(lead.preferred_contact)}</dd></div>
+          ${consentFacts(lead)}
           <div><dt>Address</dt><dd>${escapeHtml(lead.street)}<br>${escapeHtml(lead.city)}, ${escapeHtml(lead.state)} ${escapeHtml(lead.zip)}</dd></div>
           <div><dt>Property type</dt><dd>${escapeHtml(lead.property_type)}</dd></div>
           <div><dt>Roof type</dt><dd>${escapeHtml(lead.roof_type)}</dd></div>
@@ -652,7 +671,9 @@ function detailPage({ lead, notes, error, tasks = [], chrome }) {
           <div><dt>Urgency / timeline</dt><dd>${escapeHtml(lead.urgency)}</dd></div>
         </dl>
         <h3>Issue description</h3>
-        <p class="description">${escapeHtml(lead.issue_description)}</p>
+        <p class="description">${escapeHtml(lead.issue_description || "No details given")}</p>
+        <h3>Roof photos</h3>
+        ${photos.length ? `<div class="lead-photos">${photos.map((photo) => `<a href="/admin/leads/${lead.id}/photos/${photo.id}" target="_blank" rel="noopener"><img src="/admin/leads/${lead.id}/photos/${photo.id}" alt="${escapeHtml(photo.filename)}" loading="lazy"><span>${escapeHtml(photo.filename)}</span></a>`).join("")}</div>` : `<p class="muted">No photos uploaded.</p>`}
       </section>
 
       <aside class="side">
@@ -760,7 +781,7 @@ function emailLogPage({ emails, chrome }) {
   ${adminHeader({ chrome })}
   <main class="wrap">
     <h1 class="page-title">Email log</h1>
-    <p class="search-meta">Every outbound alert is recorded here, even when SMTP is not configured. Status is <code>logged</code> unless a message was actually sent.</p>
+    <p class="search-meta">Every outbound alert is recorded here. Messages are sent through Resend when it is connected. Status is <code>sent</code> when delivery is accepted, or <code>logged</code> / <code>logged-send-failed</code> when a message is only stored or could not be sent.</p>
     ${rows}
   </main>
   ${adminFooter()}`;
@@ -861,7 +882,7 @@ function dashboardPage({ stats, chrome }) {
     <div class="page-head">
       <div>
         <h1 class="page-title">Dashboard</h1>
-        <p class="muted">${escapeHtml(new Intl.DateTimeFormat("en-US", { timeZone: "America/Denver", weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()))} · America/Denver</p>
+        <p class="muted">${escapeHtml(new Intl.DateTimeFormat("en-US", { timeZone: APP_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()))} · ${escapeHtml(timeZoneAbbr())}</p>
       </div>
       <a class="btn small secondary" href="/admin/leads">View all leads</a>
     </div>
@@ -940,10 +961,380 @@ function dashboardPage({ stats, chrome }) {
   return layout({ title: `Dashboard | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
-function notFoundPage() {
-  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="/">Back to the inspection form</a></p></section></main>`;
-  return layout({ title: "Not found", body });
+function leadFields(values, errors) {
+  const v = (name) => escapeHtml(values[name] || "");
+  const invalid = (name) => (errors[name] ? " invalid" : "");
+  return `
+    <fieldset>
+      <legend>Contact</legend>
+      <div class="field">
+        <label for="full_name">Full name</label>
+        <input id="full_name" name="full_name" type="text" required maxlength="120" value="${v("full_name")}" class="${invalid("full_name")}">
+        ${fieldError(errors, "full_name")}
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" maxlength="30" value="${v("phone")}" class="${invalid("phone")}" placeholder="(555) 010-0148">
+          ${fieldError(errors, "phone")}
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" maxlength="120" value="${v("email")}" class="${invalid("email")}">
+          ${fieldError(errors, "email")}
+        </div>
+      </div>
+      <div class="field">
+        <label for="preferred_contact">Preferred contact method</label>
+        <select id="preferred_contact" name="preferred_contact" required class="${invalid("preferred_contact")}">
+          <option value="">Select one</option>
+          ${options(CONTACT_METHODS, values.preferred_contact)}
+        </select>
+        ${fieldError(errors, "preferred_contact")}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Property</legend>
+      <div class="field">
+        <label for="street">Street address</label>
+        <input id="street" name="street" type="text" required maxlength="160" value="${v("street")}" class="${invalid("street")}">
+        ${fieldError(errors, "street")}
+      </div>
+      <div class="three-col">
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" required maxlength="80" value="${v("city")}" class="${invalid("city")}">
+          ${fieldError(errors, "city")}
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <select id="state" name="state" required class="${invalid("state")}">
+            <option value="">Select</option>
+            ${options(US_STATES, values.state)}
+          </select>
+          ${fieldError(errors, "state")}
+        </div>
+        <div class="field">
+          <label for="zip">ZIP</label>
+          <input id="zip" name="zip" type="text" required maxlength="10" value="${v("zip")}" class="${invalid("zip")}">
+          ${fieldError(errors, "zip")}
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="property_type">Property type</label>
+          <select id="property_type" name="property_type" required class="${invalid("property_type")}">
+            <option value="">Select one</option>
+            ${options(PROPERTY_TYPES, values.property_type)}
+          </select>
+          ${fieldError(errors, "property_type")}
+        </div>
+        <div class="field">
+          <label for="roof_type">Roof type</label>
+          <select id="roof_type" name="roof_type" required class="${invalid("roof_type")}">
+            <option value="">Select one</option>
+            ${options(ROOF_TYPES, values.roof_type)}
+          </select>
+          ${fieldError(errors, "roof_type")}
+        </div>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Job</legend>
+      <div class="two-col">
+        <div class="field">
+          <label for="service_needed">Service needed</label>
+          <select id="service_needed" name="service_needed" required class="${invalid("service_needed")}">
+            <option value="">Select one</option>
+            ${options(SERVICES, values.service_needed)}
+          </select>
+          ${fieldError(errors, "service_needed")}
+        </div>
+        <div class="field">
+          <label for="urgency">Urgency / timeline</label>
+          <select id="urgency" name="urgency" required class="${invalid("urgency")}">
+            <option value="">Select one</option>
+            ${options(URGENCIES, values.urgency)}
+          </select>
+          ${fieldError(errors, "urgency")}
+        </div>
+      </div>
+      <div class="field">
+        <label for="issue_description">Issue description</label>
+        <textarea id="issue_description" name="issue_description" rows="4" maxlength="4000" class="${invalid("issue_description")}">${v("issue_description")}</textarea>
+        ${fieldError(errors, "issue_description")}
+      </div>
+    </fieldset>`;
 }
+
+function newLeadPage({ values = {}, errors = {}, banner, status = "New", chrome } = {}) {
+  const bannerHtml = banner ? `<div class="banner error">${escapeHtml(banner)}</div>` : "";
+  const statusOptions = STATUSES.map(
+    (item) => `<option value="${escapeHtml(item)}"${item === status ? " selected" : ""}>${escapeHtml(item)}</option>`
+  ).join("");
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin/leads">← All leads</a></p>
+    <h1 class="page-title">New lead</h1>
+    <section class="form-card lead-form-card">
+      ${bannerHtml}
+      <form method="post" action="/admin/leads">
+        ${leadFields(values, errors)}
+        <div class="field">
+          <label for="status">Status</label>
+          <select id="status" name="status" required class="${errors.status ? " invalid" : ""}">${statusOptions}</select>
+          ${fieldError(errors, "status")}
+        </div>
+        <button type="submit" class="btn primary">Create lead</button>
+      </form>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `New lead | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function importPage({ chrome, error, imported = [], failures = [] } = {}) {
+  const errorHtml = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const resultHtml = imported.length || failures.length
+    ? `<div class="banner ok">Imported ${imported.length} lead${imported.length === 1 ? "" : "s"}.</div>
+       ${failures.length ? `<div class="banner error">${failures.length} row${failures.length === 1 ? "" : "s"} failed.</div>
+       <ul class="import-errors">${failures.map((item) => `<li>Row ${escapeHtml(item.row)}: ${escapeHtml(item.message)}</li>`).join("")}</ul>` : ""}
+       ${imported.length ? `<ul class="import-created">${imported.map((item) => `<li><a href="/admin/leads/${item.id}">${escapeHtml(item.name)}</a></li>`).join("")}</ul>` : ""}`
+    : "";
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin/leads">← All leads</a></p>
+    <h1 class="page-title">Import leads</h1>
+    <section class="form-card lead-form-card">
+      <p>Upload a CSV with a header row. Row numbers below count the header as row 1. Commas, quotes, and line breaks inside a field need to be quoted.</p>
+      <p class="muted">Columns: full_name, phone, email, street, city, state, zip, property_type, roof_type, service_needed, issue_description, urgency, preferred_contact, status. Status is optional and defaults to New. Allowed statuses: ${escapeHtml(STATUSES.join(", "))}.</p>
+      ${errorHtml}
+      ${resultHtml}
+      <form method="post" action="/admin/leads/import" enctype="multipart/form-data">
+        <div class="field">
+          <label for="file">CSV file</label>
+          <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+        </div>
+        <button type="submit" class="btn primary">Import CSV</button>
+      </form>
+      <p class="fine-print"><a href="/admin/leads/export.csv">Download the current leads as CSV</a></p>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Import leads | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function reseedPage({ chrome, error, seeded } = {}) {
+  const done = seeded == null
+    ? ""
+    : `<div class="banner ok">Replaced the database with ${escapeHtml(seeded)} fictional demo leads. Follow-up dates are relative to today.</div>`;
+  const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin">← Dashboard</a></p>
+    <h1 class="page-title">Reseed demo data</h1>
+    <section class="form-card lead-form-card">
+      <div class="banner error">This deletes every lead, task, note, notification, email, and photo in this database, then loads fictional US demo leads. It does not change the admin password.</div>
+      ${done}
+      ${err}
+      <form method="post" action="/admin/reseed">
+        <div class="field">
+          <label for="confirm">Type RESEED to confirm</label>
+          <input id="confirm" name="confirm" type="text" autocomplete="off" required maxlength="20">
+        </div>
+        <button type="submit" class="btn primary">Replace demo data</button>
+      </form>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Reseed demo data | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function consentFacts(lead) {
+  const agreed = lead.sms_consent === true;
+  if (!agreed) return `<div><dt>Call and text consent</dt><dd>Not recorded</dd></div>`;
+  return `<div><dt>Call and text consent</dt><dd>Yes</dd></div>
+          <div><dt>Consent version</dt><dd>${escapeHtml(lead.sms_consent_version || "—")}</dd></div>
+          <div><dt>Consent text</dt><dd class="consent-copy">${escapeHtml(lead.sms_consent_text || "—")}</dd></div>
+          <div><dt>Consent recorded</dt><dd>${escapeHtml(formatDate(lead.sms_consent_at) || "—")}</dd></div>
+          <div><dt>Consent IP address</dt><dd>${escapeHtml(lead.sms_consent_ip || "—")}</dd></div>`;
+}
+
+function yesNo(value) {
+  return value ? "Yes" : "No";
+}
+
+function billingPage({ chrome, presence, publicBaseUrl, webhookUrl, environment, subscriptions = [], error, done }) {
+  const err = error ? `<div class="banner error">${escapeHtml(error)}</div>` : "";
+  const ok = done ? `<div class="banner ok">Paddle catalog saved. Stored ids are not shown on this page.</div>` : "";
+  const rows = subscriptions.length
+    ? subscriptions.map((row) => `<tr>
+        <td>${escapeHtml(row.plan_name || "—")}</td>
+        <td>${escapeHtml(row.status || "—")}</td>
+        <td>${escapeHtml(row.trial_end || "—")}</td>
+        <td>${escapeHtml(row.current_period_end || "—")}</td>
+        <td>${escapeHtml(row.scheduled_cancel || "—")}</td>
+        <td>
+          <form method="post" action="/admin/billing/portal">
+            <input type="hidden" name="customer_id" value="${escapeHtml(row.paddle_customer_id)}">
+            <input type="hidden" name="subscription_id" value="${escapeHtml(row.paddle_subscription_id)}">
+            <button type="submit" class="btn small secondary">Customer portal</button>
+          </form>
+        </td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="muted">No subscription events yet. Existing CRM features stay available either way.</td></tr>`;
+  const liveField = environment === "sandbox"
+    ? ""
+    : `<div class="field"><label for="confirm_live">Type PRODUCTION to allow a live catalog change</label><input id="confirm_live" name="confirm_live" type="text" autocomplete="off" maxlength="20"></div>`;
+  const body = `
+  ${adminHeader({ chrome })}
+  <main class="wrap">
+    <p class="back"><a href="/admin">← Dashboard</a></p>
+    <h1 class="page-title">Billing</h1>
+    <p class="muted">Subscription status is recorded here. It does not lock any CRM page.</p>
+    ${err}${ok}
+    <section class="form-card">
+      <h2>Configuration</h2>
+      <dl class="facts">
+        <div><dt>API key set</dt><dd>${yesNo(presence.apiKey)}</dd></div>
+        <div><dt>Client token set</dt><dd>${yesNo(presence.clientToken)}</dd></div>
+        <div><dt>Sandbox environment</dt><dd>${yesNo(presence.sandbox)}</dd></div>
+        <div><dt>Product stored</dt><dd>${yesNo(presence.product)}</dd></div>
+        <div><dt>Starter price stored</dt><dd>${yesNo(presence.starterPrice)}</dd></div>
+        <div><dt>Team price stored</dt><dd>${yesNo(presence.teamPrice)}</dd></div>
+        <div><dt>Webhook destination stored</dt><dd>${yesNo(presence.notification)}</dd></div>
+        <div><dt>Webhook secret stored</dt><dd>${yesNo(presence.webhookSecret)}</dd></div>
+      </dl>
+      <p>Public site URL used for the webhook: <strong>${escapeHtml(publicBaseUrl)}</strong></p>
+      <p class="muted">Webhook destination: ${escapeHtml(webhookUrl)}</p>
+    </section>
+    <section class="form-card">
+      <h2>Set up Paddle sandbox catalog</h2>
+      <p>This creates one product, the $49.00 and $99.00 monthly prices with a 14-day card trial, and the webhook destination. Running it again reuses matching records.</p>
+      <form method="post" action="/admin/billing/setup">
+        <div class="field">
+          <label for="confirm">Type SETUP to confirm</label>
+          <input id="confirm" name="confirm" type="text" autocomplete="off" required maxlength="20">
+        </div>
+        ${liveField}
+        <button type="submit" class="btn primary">Set up Paddle sandbox catalog</button>
+      </form>
+    </section>
+    <section class="form-card">
+      <h2>Subscriptions</h2>
+      <div class="table-wrap flat">
+        <table class="leads-table compact">
+          <thead><tr><th>Plan</th><th>Status</th><th>Trial end</th><th>Period end</th><th>Scheduled cancel</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  ${adminFooter()}`;
+  return layout({ title: `Billing | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
+}
+
+function subscribePage({ starterPriceId, teamPriceId, clientToken, sandbox }) {
+  const ready = Boolean(starterPriceId && teamPriceId && clientToken);
+  const banner = sandbox ? `<p class="banner ok">Test mode, no real charges</p>` : "";
+  const checkout = ready
+    ? `<div class="hero-actions">
+        <button type="button" class="btn secondary" id="pay-starter" disabled>Pay for Starter, $49/month</button>
+        <button type="button" class="btn secondary" id="pay-team" disabled>Pay for Team, $99/month</button>
+      </div>`
+    : `<p class="banner error">Checkout is not ready yet. The Paddle catalog or client token is missing.</p>`;
+  const script = ready
+    ? `<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+      <script>
+        const paddleConfig = ${JSON.stringify({
+          sandbox,
+          token: clientToken,
+          starterPriceId,
+          teamPriceId,
+          successUrl: "/subscribe/thanks",
+        })};
+        if (paddleConfig.sandbox) Paddle.Environment.set("sandbox");
+        Paddle.Initialize({ token: paddleConfig.token });
+        const accept = document.getElementById("accept-terms");
+        const buttons = [document.getElementById("pay-starter"), document.getElementById("pay-team")];
+        accept.addEventListener("change", () => { buttons.forEach((button) => { button.disabled = !accept.checked; }); });
+        function openCheckout(priceId) {
+          if (!accept.checked) return;
+          Paddle.Checkout.open({
+            items: [{ priceId: priceId, quantity: 1 }],
+            settings: { successUrl: window.location.origin + paddleConfig.successUrl }
+          });
+        }
+        document.getElementById("pay-starter").addEventListener("click", () => openCheckout(paddleConfig.starterPriceId));
+        document.getElementById("pay-team").addEventListener("click", () => openCheckout(paddleConfig.teamPriceId));
+      </script>`
+    : "";
+  const body = `
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo-link" href="/"><span class="logo-text"><strong>${escapeHtml(LEGAL.productName)}</strong><span>${escapeHtml(LEGAL.vendorName)}</span></span></a>
+      <nav class="public-nav" aria-label="Product">
+        <a href="/terms">Terms</a>
+        <a href="/refunds">Refunds</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap legal-doc">
+    ${banner}
+    <p class="eyebrow">Subscribe</p>
+    <h1>Roofing Lead CRM</h1>
+    <p>Monthly subscription. $49/month (2 users) or $99/month (5 users). Each plan starts with a 14-day free trial, and a card is required to start that trial. The subscription auto-renews monthly until you cancel. You can cancel any time.</p>
+    <p>If you request it within ${REFUND_DAYS} days of the first charge, you receive a full refund of that subscription payment. <a href="/refunds">Refund Policy</a>.</p>
+    <p>${escapeHtml(PADDLE_ORDER_SENTENCE)}</p>
+    <p>Payments are processed by Paddle. Read the <a href="/terms">Terms</a> and the <a href="/refunds">Refunds</a> before you pay.</p>
+    <section class="price-grid">
+      <article class="price-card"><h2>Starter, 2 users</h2><p class="price"><strong>$49.00</strong><span>/month</span></p><p>14-day free trial. Card required.</p></article>
+      <article class="price-card price-crew"><h2>Team, 5 users</h2><p class="price"><strong>$99.00</strong><span>/month</span></p><p>14-day free trial. Card required.</p></article>
+    </section>
+    <label class="check-line" for="accept-terms">
+      <input id="accept-terms" type="checkbox">
+      <span>I accept the <a href="/terms">Terms</a> and <a href="/refunds">Refund Policy</a>.</span>
+    </label>
+    ${checkout}
+  </main>
+  ${publicFooter()}
+  ${script}`;
+  return layout({ title: `Subscribe | ${LEGAL.productName}`, body });
+}
+
+function subscribeThanksPage({ sandbox }) {
+  const banner = sandbox ? `<p class="banner ok">Test mode, no real charges</p>` : "";
+  const body = `
+  <header class="site-header"><div class="wrap header-inner"><a class="logo-link" href="/"><strong>${escapeHtml(LEGAL.productName)}</strong></a></div></header>
+  <main class="wrap narrow">
+    <section class="form-card thanks">
+      ${banner}
+      <p class="eyebrow">Subscription</p>
+      <h1>Thanks. Paddle has the checkout.</h1>
+      <p>If the checkout finished, Paddle will send the subscription to this site. You can cancel any time. A full refund of the first charge is available for ${REFUND_DAYS} days. See the <a href="/refunds">Refund Policy</a>.</p>
+      <p><a href="/" class="btn secondary">Back to the product page</a></p>
+    </section>
+  </main>
+  ${publicFooter()}`;
+  return layout({ title: `Thanks | ${LEGAL.productName}`, body });
+}
+
+function notFoundPage({ admin = false } = {}) {
+  const href = admin ? "/admin" : "/inspection";
+  const label = admin ? "Back to the dashboard" : "Back to the inspection form";
+  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="${href}">${label}</a></p></section></main>${admin ? "" : publicFooter()}`;
+  return layout({ title: "Not found", body, admin });
+}
+
+const { landingPage, privacyPage, termsPage, refundsPage } = require("./public-pages")({
+  layout,
+  escapeHtml,
+  publicFooter,
+  fieldError,
+});
 
 module.exports = {
   escapeHtml,
@@ -959,5 +1350,15 @@ module.exports = {
   notificationsPage,
   emailLogPage,
   tasksPage,
+  newLeadPage,
+  importPage,
+  reseedPage,
   notFoundPage,
+  landingPage,
+  privacyPage,
+  termsPage,
+  refundsPage,
+  billingPage,
+  subscribePage,
+  subscribeThanksPage,
 };

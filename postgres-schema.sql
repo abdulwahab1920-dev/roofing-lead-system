@@ -28,8 +28,25 @@ CREATE TABLE IF NOT EXISTS leads (
   ai_followup TEXT,
   ai_summary TEXT,
   ai_scored_at TEXT,
-  ai_source TEXT
+  ai_source TEXT,
+  sms_consent BOOLEAN NOT NULL DEFAULT FALSE,
+  sms_consent_text TEXT,
+  sms_consent_version TEXT,
+  sms_consent_at TEXT,
+  sms_consent_ip TEXT
 );
+
+CREATE TABLE IF NOT EXISTS lead_photos (
+  id BIGSERIAL PRIMARY KEY,
+  lead_id BIGINT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  data BYTEA NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_lead_photos_lead ON lead_photos(lead_id, id);
 
 CREATE TABLE IF NOT EXISTS notes (
   id BIGSERIAL PRIMARY KEY,
@@ -69,6 +86,17 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS pilot_requests (
+  id BIGSERIAL PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL DEFAULT '',
+  company_name TEXT NOT NULL,
+  city TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   sid VARCHAR NOT NULL PRIMARY KEY,
   sess JSON NOT NULL,
@@ -82,3 +110,29 @@ CREATE INDEX IF NOT EXISTS idx_leads_priority ON leads(ai_priority);
 CREATE INDEX IF NOT EXISTS idx_notes_lead_created ON notes(lead_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due_at);
+
+CREATE TABLE IF NOT EXISTS billing_config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS billing_subscriptions (
+  id BIGSERIAL PRIMARY KEY,
+  paddle_customer_id TEXT NOT NULL,
+  paddle_subscription_id TEXT NOT NULL UNIQUE,
+  price_id TEXT,
+  plan_name TEXT,
+  status TEXT,
+  trial_end TEXT,
+  current_period_end TEXT,
+  scheduled_cancel TEXT,
+  updated_at TEXT NOT NULL,
+  raw_last_event_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS billing_events (
+  event_id TEXT PRIMARY KEY,
+  type TEXT NOT NULL,
+  received_at TEXT NOT NULL
+);
