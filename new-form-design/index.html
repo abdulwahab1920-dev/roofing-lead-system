@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Roofing Lead CRM Demo | __COMPANY_NAME__</title>
+<title>Roof inspection | __COMPANY_NAME__</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="shortcut icon" href="/favicon.ico">
@@ -12,10 +12,6 @@
 <body>
 <a class="skip" href="#lead-card">Skip to the request form</a>
 
-<div class="demo-notice" data-demo-banner>
-  <span class="demo-notice-full">INTERACTIVE DEMO · Use fictional test details only · No real roofing company will contact you</span>
-  <span class="demo-notice-short">Demo: use test details only. No company will contact you.</span>
-</div>
 <header class="topbar">
   <div class="wrap topbar-inner">
     <span class="brand">
@@ -24,14 +20,13 @@
         <path d="M4 18 L16 7 L28 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
         <path d="M10 26 V16.5 L16 11.5 L22 16.5 V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
       </svg>
-      <strong>Roofing Lead CRM Demo</strong>
+      <strong>__COMPANY_NAME__</strong>
     </span>
     <div class="call-box">
-    <!-- Demo mode: text badge only. Customer mode with COMPANY_PHONE: replace with
-         <a class="call-link" href="tel:+1XXXXXXXXXX"><svg>...</svg><span class="call-text"><span class="call-num">...</span><span class="call-short">Call</span></span></a> -->
-    <span class="demo-badge" data-demo-badge aria-label="Interactive demo; no real roofing phone number">
-      <span class="call-num">Interactive demo</span>
-      <span class="call-short" aria-hidden="true">Demo</span>
+    <!-- Without a published phone number this stays a text badge. With COMPANY_PHONE and DEMO_MODE=false the server swaps in a tel: link. -->
+    <span class="demo-badge" data-demo-badge aria-label="Roof inspection request">
+      <span class="call-num">Inspection request</span>
+      <span class="call-short" aria-hidden="true">Form</span>
     </span>
     </div>
   </div>
@@ -44,13 +39,12 @@
       <div class="hero-copy">
         <p class="eyebrow">Roof inspection request</p>
         <h1>Tell us about your roof. <em>We take it from there.</em></h1>
-        <p class="lede">Explore the four-step homeowner request experience. This demo uses fictional information and does not contact a roofing company.</p>
+        <p class="lede">Share the address, what is going on, and how you want to be reached. It takes about a minute.</p>
         <ul class="trust">
           <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Residential and commercial roofs</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Repairs, replacements and storm inspections</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>We never sell your information</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Test enquiries only</li>
-          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>No real homeowner contact</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Repairs, replacements, and storm inspections</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>We do not sell your information</li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>You choose a call, a text, or email</li>
         </ul>
       </div>
 
@@ -71,6 +65,10 @@
         <div class="sr-only" aria-live="polite" id="announcer"></div>
 
         <form id="lead-form" method="post" action="/leads" novalidate enctype="multipart/form-data">
+          <div class="hp-field" aria-hidden="true">
+            <label for="leave_blank">Leave this blank</label>
+            <input id="leave_blank" name="leave_blank" type="text" tabindex="-1" autocomplete="off" value="">
+          </div>
           <div class="err-summary" id="err-summary" tabindex="-1" hidden>
             <p><strong>Please check the highlighted fields</strong></p>
             <ul id="err-list"></ul>
@@ -117,9 +115,9 @@
             <div class="urgent" id="urgent-panel" hidden>
               <div class="urgent-head">
                 <span class="pulse" aria-hidden="true"></span>
-                <strong>Water coming in? This demo does not dispatch emergency help.</strong>
+                <strong>Water coming in right now?</strong>
               </div>
-              <p class="ph-note">This is a demo. For a real emergency, contact your local emergency roofing provider directly.</p>
+              <p class="ph-note">Stay off the roof. Send this request so we have the address, and call us if water is coming in.</p>
               <ul class="urgent-tips">
                 <li>Stay off the roof, especially when it is wet.</li>
                 <li>Move valuables and electronics away from the water.</li>
@@ -257,7 +255,13 @@
                 <p class="field-msg" id="email-msg"></p>
               </div>
             </div>
-            <p class="consent">Demo only: use fictional contact details. This submission is stored in the demo CRM and no roofing company will contact you.</p>
+            <div class="consent-box" id="sms-consent-field">
+              <div class="check-line">
+                <input type="checkbox" name="sms_consent" id="sms_consent" value="yes">
+                <p class="check-copy"><label for="sms_consent">__SMS_CONSENT_LABEL__</label><a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+              </div>
+              <p class="field-msg" id="consent-msg" role="alert"></p>
+            </div>
           </fieldset>
 
           <!-- NAV (sticky on mobile) -->
@@ -276,15 +280,14 @@
         <div class="success" id="success" hidden tabindex="-1" aria-labelledby="success-title">
           <div class="success-badge" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
           <h2 id="success-title">Thanks, <span id="s-name">there</span>. Your request is in.</h2>
-          <p class="s-lede">Your test request has been saved to the demo CRM. No real company will contact you.</p>
+          <p class="s-lede">We saved your inspection request. The roofing company will follow up the way you asked.</p>
           
-          <p class="s-urgent" id="s-urgent" hidden><span class="pulse" aria-hidden="true"></span>Marked urgent. This demo does not dispatch emergency help.</p>
+          <p class="s-urgent" id="s-urgent" hidden><span class="pulse" aria-hidden="true"></span>Marked urgent. For water coming in now, please also call us.</p>
           <dl class="s-summary" id="s-summary"></dl>
           <p class="s-ref" id="s-ref-label">Request reference <strong id="s-ref"></strong></p>
           <div class="s-actions">
-            <button type="button" class="btn btn-ghost" id="restart">Submit another test request</button>
+            <button type="button" class="btn btn-ghost" id="restart">Submit another request</button>
           </div>
-          <p class="ph-note center">This is a demonstration using fictional details.</p>
         </div>
       </section>
     </div>
@@ -294,9 +297,9 @@
     <div class="wrap">
       <h2 id="next-title">What happens next</h2>
       <ol class="next-list">
-        <li><span class="num">1</span><div><strong>We read your request</strong><p>Your test answers and photos are saved with the demo lead record.</p></div></li>
-        <li><span class="num">2</span><div><strong>We contact you to book a visit</strong><p>The real roofing company can configure its preferred follow-up process.</p></div></li>
-        <li><span class="num">3</span><div><strong>You get a clear estimate</strong><p>After the inspection we explain what we found and what it would take.</p></div></li>
+        <li><span class="num">1</span><div><strong>We read your request</strong><p>Your answers and any photos are saved with the lead.</p></div></li>
+        <li><span class="num">2</span><div><strong>We contact you to book a visit</strong><p>We use the call, text, or email you chose.</p></div></li>
+        <li><span class="num">3</span><div><strong>You get a clear picture</strong><p>After the inspection we explain what we found and what the work would take.</p></div></li>
       </ol>
     </div>
   </section>
@@ -304,8 +307,8 @@
 
 <footer class="foot">
   <div class="wrap foot-inner">
-    <p>© 2026 __COMPANY_NAME__. Roofing Lead CRM interactive demo.</p>
-    <p>Fictional test data only · No real roofing company contact details</p>
+    <p>© 2026 __COMPANY_NAME__</p>
+    <p class="foot-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/">For roofing companies</a></p>
   </div>
 </footer>
 

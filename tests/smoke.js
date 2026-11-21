@@ -54,14 +54,54 @@ async function waitForServer(url, child) {
   try {
     await waitForServer(base + "/", child);
 
-    const form = await fetch(base + "/");
+    const home = await fetch(base + "/");
+    assert.equal(home.status, 200, "Product landing page should load.");
+    const homeHtml = await home.text();
+    assert.match(homeHtml, /Never lose a website or storm lead/);
+    assert.match(homeHtml, /\$49/);
+    assert.match(homeHtml, /\$99/);
+    assert.match(homeHtml, /14-day/);
+    assert.match(homeHtml, /href="\/inspection"/);
+    assert.match(homeHtml, /name="leave_blank"/);
+    assert.match(homeHtml, /href="\/privacy"/);
+    assert.match(homeHtml, /href="\/terms"/);
+    assert.doesNotMatch(homeHtml, /testimonial|trusted by \d|customers and counting/i);
+
+    const privacy = await fetch(base + "/privacy");
+    assert.equal(privacy.status, 200, "Privacy policy should load.");
+    const privacyHtml = await privacy.text();
+    assert.match(privacyHtml, /Privacy Policy/);
+    assert.match(privacyHtml, /privacy@artificcreations\.example/);
+    assert.match(privacyHtml, /href="\/terms"/);
+    assert.match(privacyHtml, /roof\.sid/);
+
+    const terms = await fetch(base + "/terms");
+    assert.equal(terms.status, 200, "Terms of service should load.");
+    const termsHtml = await terms.text();
+    assert.match(termsHtml, /Terms of Service/);
+    assert.match(termsHtml, /legal@artificcreations\.example/);
+    assert.match(termsHtml, /14-day/);
+    assert.match(termsHtml, /Cancel anytime/);
+    assert.match(termsHtml, /href="\/privacy"/);
+
+    const form = await fetch(base + "/inspection");
     assert.equal(form.status, 200, "Public lead form should load.");
     const formHtml = await form.text();
-    assert.match(formHtml, /Roofing Lead CRM Demo/);
-    assert.match(formHtml, /INTERACTIVE DEMO/);
+    assert.match(formHtml, /Roof inspection/);
     assert.match(formHtml, /name="photos"/);
+    assert.match(formHtml, /name="sms_consent"/);
+    assert.match(formHtml, /name="leave_blank"/);
+    assert.match(formHtml, /Reply STOP/);
+    assert.match(formHtml, /not a condition of purchase/i);
+    assert.match(formHtml, /href="\/privacy"/);
+    assert.match(formHtml, /href="\/terms"/);
     assert.match(formHtml, /Artific Creations Demo/);
+    assert.doesNotMatch(formHtml, /name="sms_consent"[^>]*checked/);
+    assert.doesNotMatch(formHtml, /INTERACTIVE DEMO|fictional test details/i);
     assert.doesNotMatch(formHtml, /Summit Ridge|Sample Roofing Company/);
+    const assetRedirect = await fetch(base + "/form-assets/index.html", { redirect: "manual" });
+    assert.equal(assetRedirect.status, 302, "Old form asset path should redirect to the inspection form.");
+    assert.equal(assetRedirect.headers.get("location"), "/inspection");
     assert.equal(form.headers.get("x-frame-options"), "DENY");
     assert.equal(form.headers.get("x-content-type-options"), "nosniff");
     assert.match(form.headers.get("content-security-policy") || "", /frame-ancestors/);
@@ -121,7 +161,14 @@ async function waitForServer(url, child) {
       body: new URLSearchParams(leadData).toString(),
     });
     assert.equal(submission.status, 302, "Valid lead submission should be accepted.");
-    assert.match(submission.headers.get("location") || "", /^\/thanks\?id=/);
+    const submissionLocation = submission.headers.get("location") || "";
+    assert.match(submissionLocation, /^\/thanks\?id=/);
+    const phoneLeadId = submissionLocation.split("id=")[1];
+    const phoneDetail = await fetch(base + "/admin/leads/" + phoneLeadId, {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(phoneDetail.status, 200);
+    assert.match(await phoneDetail.text(), /Call and text consent[\s\S]*Not recorded/);
 
     const leadsPage = await fetch(base + "/admin/leads", {
       headers: { cookie, "x-forwarded-proto": "https" },
@@ -164,6 +211,43 @@ async function waitForServer(url, child) {
       method: "POST", headers: { Accept: "application/json" }, body: missingPhone,
     });
     assert.equal(missingPhoneResponse.status, 400, "Phone/Text preference must require a phone number.");
+
+    const textWithoutConsent = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Text Without Consent", phone: "(303) 555-0177", preferred_contact: "Text",
+      email: "text-no-consent@example.com", street: "77 Consent Street", city: "Denver", state: "CO", zip: "80205",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair", urgency: "This week",
+    })) textWithoutConsent.append(key, value);
+    const textWithoutConsentResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: textWithoutConsent,
+    });
+    assert.equal(textWithoutConsentResponse.status, 400, "Text preference must require SMS consent.");
+    const textWithoutConsentBody = await textWithoutConsentResponse.json();
+    assert.match(textWithoutConsentBody.message || "", /calls and texts/i);
+    assert.equal(textWithoutConsentBody.errors.sms_consent != null, true);
+
+    const textWithConsent = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Text With Consent", phone: "(303) 555-0176", preferred_contact: "Text",
+      email: "text-yes-consent@example.com", street: "76 Consent Street", city: "Denver", state: "CO", zip: "80205",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Storm damage inspection",
+      urgency: "This week", sms_consent: "yes",
+    })) textWithConsent.append(key, value);
+    const textWithConsentResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: textWithConsent,
+    });
+    assert.equal(textWithConsentResponse.status, 201, "Text preference with consent should create a lead.");
+    const textWithConsentResult = await textWithConsentResponse.json();
+    const consentDetail = await fetch(base + "/admin/leads/" + textWithConsentResult.id, {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.equal(consentDetail.status, 200);
+    const consentHtml = await consentDetail.text();
+    assert.match(consentHtml, /Call and text consent/);
+    assert.match(consentHtml, /2026-11-v1/);
+    assert.match(consentHtml, /Reply STOP/);
+    assert.match(consentHtml, /Consent IP address/);
+    assert.doesNotMatch(consentHtml, /Call and text consent[\s\S]{0,80}Not recorded/);
 
     const photoForm = new FormData();
     for (const [key, value] of Object.entries({
@@ -382,6 +466,8 @@ async function waitForServer(url, child) {
     assert.equal(publicMissing.status, 404);
     const publicMissingHtml = await publicMissing.text();
     assert.match(publicMissingHtml, /Back to the inspection form/);
+    assert.match(publicMissingHtml, /href="\/inspection"/);
+    assert.match(publicMissingHtml, /href="\/privacy"/);
     assert.doesNotMatch(publicMissingHtml, /Back to the dashboard/);
 
     const reseedOff = await fetch(base + "/admin/reseed", {
@@ -401,7 +487,103 @@ async function waitForServer(url, child) {
     const dash = await fetch(base + "/admin", { headers: { cookie, "x-forwarded-proto": "https" } });
     assert.doesNotMatch(await dash.text(), /href="\/admin\/reseed"/);
 
-    console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, admin 404, and disabled reseed.");
+    const pilot = await fetch(base + "/pilot", {
+      method: "POST",
+      redirect: "manual",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        full_name: "Pilot Person",
+        email: "pilot@example.com",
+        company_name: "Pilot Roofing",
+        city: "Denver",
+      }).toString(),
+    });
+    assert.equal(pilot.status, 303, "A pilot request should be stored.");
+    assert.match(pilot.headers.get("location") || "", /pilot=thanks/);
+    const pilotNotes = await fetch(base + "/admin/notifications", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.match(await pilotNotes.text(), /Pilot request: Pilot Roofing/);
+
+    const honeypotLead = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Honeypot Lead", phone: "(303) 555-0161", preferred_contact: "Phone",
+      street: "61 Trap Street", city: "Denver", state: "CO", zip: "80206",
+      property_type: "Residential", roof_type: "Asphalt shingle", service_needed: "Roof repair",
+      urgency: "This week", leave_blank: "https://spam.example",
+    })) honeypotLead.append(key, value);
+    const honeypotLeadResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: honeypotLead,
+    });
+    assert.equal(honeypotLeadResponse.status, 400, "A filled honeypot should be rejected.");
+    const honeypotLeadBody = await honeypotLeadResponse.json();
+    assert.match(honeypotLeadBody.message, /could not accept this submission/i);
+    const honeypotList = await fetch(base + "/admin/leads", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await honeypotList.text(), /Honeypot Lead/);
+
+    const limitedLead = new FormData();
+    for (const [key, value] of Object.entries({
+      full_name: "Rate Limited Lead", email: "limited-lead@example.com", preferred_contact: "Email",
+      street: "62 Trap Street", city: "Denver", state: "CO", zip: "80206",
+      property_type: "Residential", roof_type: "Metal", service_needed: "Roof inspection / estimate",
+      urgency: "This month",
+    })) limitedLead.append(key, value);
+    const limitedLeadResponse = await fetch(base + "/leads", {
+      method: "POST", headers: { Accept: "application/json" }, body: limitedLead,
+    });
+    assert.equal(limitedLeadResponse.status, 429, "The sixth public lead submission in 10 minutes should wait.");
+    const limitedLeadBody = await limitedLeadResponse.json();
+    assert.match(limitedLeadBody.message, /wait a few minutes/i);
+    const limitedList = await fetch(base + "/admin/leads", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await limitedList.text(), /Rate Limited Lead/);
+
+    const honeypotPilot = await fetch(base + "/pilot", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        full_name: "Spam Pilot",
+        email: "spam-pilot@example.com",
+        company_name: "Spam Roofing",
+        leave_blank: "filled",
+      }).toString(),
+    });
+    assert.equal(honeypotPilot.status, 400, "A filled pilot honeypot should be rejected.");
+    assert.match(await honeypotPilot.text(), /could not accept this submission/i);
+    const honeypotPilotNotes = await fetch(base + "/admin/notifications", {
+      headers: { cookie, "x-forwarded-proto": "https" },
+    });
+    assert.doesNotMatch(await honeypotPilotNotes.text(), /Spam Roofing/);
+
+    for (let i = 0; i < 3; i += 1) {
+      const extraPilot = await fetch(base + "/pilot", {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          full_name: "Extra Pilot " + i,
+          email: `extra-pilot-${i}@example.com`,
+          company_name: "Extra Roofing " + i,
+        }).toString(),
+      });
+      assert.equal(extraPilot.status, 303, "Pilot requests under the limit should be stored.");
+    }
+    const limitedPilot = await fetch(base + "/pilot", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        full_name: "Blocked Pilot",
+        email: "blocked-pilot@example.com",
+        company_name: "Blocked Roofing",
+      }).toString(),
+    });
+    assert.equal(limitedPilot.status, 429, "The sixth pilot request in 10 minutes should wait.");
+    assert.match(await limitedPilot.text(), /wait a few minutes/i);
+
+    console.log("Smoke test passed: form assets, protected admin, lead submission, conditional contact validation, optional description, five-image storage, authenticated photo display, invalid/oversized upload rejection, new lead, CSV import/export, login next, admin 404, disabled reseed, and pilot request.");
   } finally {
     child.kill("SIGTERM");
     await new Promise((resolve) => {

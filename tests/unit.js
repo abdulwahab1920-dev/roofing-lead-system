@@ -5,8 +5,24 @@ const { formatLeadLocation, isPlausibleUsLocation } = require("../location");
 const { snoozeDue } = require("../workflow-postgres");
 const { scoreLead } = require("../ai/leadScorer");
 const { COMPANY_NAME } = require("../company");
+const { LEGAL, SMS_CONSENT_VERSION, smsConsentText, smsConsentHtml } = require("../legal");
 
 assert.equal(COMPANY_NAME, process.env.COMPANY_NAME || "Artific Creations Demo");
+assert.equal(LEGAL.contactEmail, "legal@artificcreations.example");
+assert.equal(LEGAL.privacyEmail, "privacy@artificcreations.example");
+assert.equal(LEGAL.pilotsEmail, "pilots@artificcreations.example");
+assert.equal(SMS_CONSENT_VERSION, "2026-11-v1");
+const consentText = smsConsentText("Northwind Roofing");
+assert.match(consentText, /Northwind Roofing/);
+assert.match(consentText, /automated or autodialed/);
+assert.match(consentText, /not a condition of purchase/i);
+assert.match(consentText, /Message and data rates may apply/);
+assert.match(consentText, /Reply STOP to opt out/);
+const consentHtml = smsConsentHtml("Roof <Co>");
+assert.match(consentHtml, /Roof &lt;Co&gt;/);
+assert.match(consentHtml, /href="\/terms"/);
+assert.match(consentHtml, /href="\/privacy"/);
+assert.doesNotMatch(consentHtml, /Roof <Co>/);
 
 assert.equal(formatLeadLocation({ city: "Denver", state: "CO", zip: "80202" }), "Denver, CO");
 assert.equal(formatLeadLocation({ city: "Karachi", state: "KY", zip: "74000" }), "");
