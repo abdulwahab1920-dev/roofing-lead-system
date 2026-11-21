@@ -18,6 +18,23 @@ Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 - Notifications: `/admin/notifications`
 - Follow-up tasks: `/admin/tasks`
 - Email log: `/admin/emails`
+- New lead: `/admin/leads/new`
+- CSV import: `/admin/leads/import` (`/admin/import` redirects here)
+- CSV export: `/admin/leads/export.csv` (`/admin/export` and `/admin/leads/export` redirect here)
+
+## Demo data
+
+Sample leads are fictional US homeowners: `example.com` emails, `555-010` phone numbers, and street names like Demo Lane. Nothing in the seed is a real customer.
+
+Dates are calculated when the seed runs, relative to that moment. The task list then contains a mix of overdue, due today, upcoming, and completed follow-ups. Leads are spread across the last few weeks and the statuses New, Contacted, Quoted, Won, Lost, and Cold. Cold is both a status and, for the sample cold leads, the scoring priority.
+
+Startup applies this seed only when `RESET_DEMO_DATA` is set to a token the app has not applied before. To load the sample data again, which deletes existing leads, tasks, notes, notifications, emails, and photos:
+
+```bash
+DATABASE_URL='postgres://…' npm run reseed
+```
+
+Use the same `DATABASE_URL` the app uses. If `RESET_DEMO_DATA` is already set, the command stores that token so the next startup does not wipe the database a second time. Leave `RESET_DEMO_DATA` unset on a real customer install. Changing the token and restarting the app is the other way to reseed.
 
 ## Free-tier hosting plan
 

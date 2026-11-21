@@ -3,7 +3,7 @@ const { Pool } = require("pg");
 const { scoreLead } = require("./ai/leadScorer");
 const tz = require("./timezone");
 function denverParts(date){return tz.zoneParts(date,{weekday:"short",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});}function fromDenver(y,m,d,h=0,mi=0){return tz.fromZone(y,m,d,h,mi);}
-const STATUSES=["New","Contacted","Quoted","Won","Lost"];
+const STATUSES=["New","Contacted","Quoted","Won","Lost","Cold"];
 const PROPERTY_TYPES=["Residential","Commercial"];
 const ROOF_TYPES=["Asphalt shingle","Metal","Tile","Flat","Other"];
 const SERVICES=["Roof repair","Roof replacement","Storm damage inspection","Leak / emergency repair","New construction","Gutter installation or repair","Roof inspection / estimate","Other"];
