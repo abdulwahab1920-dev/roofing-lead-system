@@ -13,7 +13,7 @@ const LEGAL = {
   vendorName: "Artific Creations",
   productName: "Roofing Lead CRM",
   supportPhone: "+92 3353392279",
-  supportEmail: "abdulwahab@artificcreations.com",
+  supportEmail: "hello@artificcreations.com",
   updated: "November 21, 2026",
 };
 

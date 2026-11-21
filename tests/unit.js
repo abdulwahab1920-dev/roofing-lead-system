@@ -10,7 +10,7 @@ const { LEGAL, REFUND_DAYS, PADDLE_ORDER_SENTENCE, SMS_CONSENT_VERSION, smsConse
 assert.equal(COMPANY_NAME, process.env.COMPANY_NAME || "Artific Creations Demo");
 assert.equal(LEGAL.legalName, "Abdul Wahab");
 assert.equal(LEGAL.supportPhone, "+92 3353392279");
-assert.equal(LEGAL.supportEmail, "abdulwahab@artificcreations.com");
+assert.equal(LEGAL.supportEmail, "hello@artificcreations.com");
 assert.equal(REFUND_DAYS, 7);
 assert.equal(PADDLE_ORDER_SENTENCE, "Our order process is conducted by our online reseller Paddle.com. Paddle.com is the Merchant of Record for all our orders. Paddle provides all customer service inquiries and handles returns.");
 assert.equal(SMS_CONSENT_VERSION, "2026-11-v1");
