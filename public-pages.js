@@ -1,9 +1,10 @@
 "use strict";
 
-// TODO: A lawyer should review the Privacy Policy and Terms of Service
-// rendered here before launch. See legal.js for the contact addresses.
+// TODO: A lawyer should review the Privacy Policy, Terms of Service, and
+// Refund Policy rendered here before launch. See legal.js for the seller
+// details, support contact, refund window, and Paddle sentence.
 
-const { LEGAL, smsConsentHtml } = require("./legal");
+const { LEGAL, REFUND_DAYS, PADDLE_ORDER_SENTENCE, smsConsentHtml } = require("./legal");
 const { COMPANY_NAME, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
 
 const LAWYER_TODO =
@@ -32,6 +33,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
           <a href="/#benefits">Benefits</a>
           <a href="/#how">How it works</a>
           <a href="/#pricing">Pricing</a>
+          <a href="/refunds">Refunds</a>
           <a href="/#request-pilot">Request a pilot</a>
           <a href="/inspection">Homeowner form</a>
         </nav>
@@ -55,7 +57,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
         <div class="wrap">
           <p class="eyebrow">For small US residential roofers</p>
           <h1>Never lose a website or storm lead.</h1>
-          <p class="lede">Roofing Lead CRM keeps inspection requests, photos, and follow-ups in one place. We are about to run free pilots. After a pilot, paid plans start with a 14-day free trial at $49 or $99 a month.</p>
+          <p class="lede">Roofing Lead CRM keeps inspection requests, photos, and follow-ups in one place. We are about to run free pilots. After a pilot, paid plans are a monthly subscription: $49/month (2 users) or $99/month (5 users). Each plan starts with a 14-day free trial, and a card is required to start that trial. The subscription auto-renews monthly until you cancel. You can cancel any time. Payments are processed by Paddle.</p>
           <div class="hero-actions">
             <a class="btn secondary" href="#request-pilot">Request a pilot</a>
             <a class="btn ghost" href="/inspection">Open the homeowner form</a>
@@ -97,12 +99,12 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
 
       <section class="wrap market-section" id="pricing">
         <h2>Pricing after the pilot</h2>
-        <p class="lede">Free pilots come first. We are not charging cards here. A paid plan, when you choose one, starts with a 14-day free trial. Cancel anytime.</p>
+        <p class="lede">Free pilots come first. A paid plan is a monthly subscription: $49/month (2 users) or $99/month (5 users). Each plan starts with a 14-day free trial, and a card is required to start that trial. The subscription auto-renews monthly until you cancel. You can cancel any time. Payments are processed by Paddle. Before you pay, you accept the <a href="/terms">Terms</a> and the <a href="/refunds">Refund Policy</a>.</p>
         <div class="price-grid">
           <article class="price-card">
             <h3>Starter</h3>
-            <p class="price"><strong>$49</strong><span>/ month</span></p>
-            <p>Up to 2 users. 14-day free trial.</p>
+            <p class="price"><strong>$49</strong><span>/month</span></p>
+            <p>2 users. 14-day free trial. A card is required.</p>
             <ul>
               <li>Inspection form, dashboard, and lead list</li>
               <li>Follow-up tasks</li>
@@ -112,16 +114,17 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
           </article>
           <article class="price-card price-crew">
             <h3>Crew</h3>
-            <p class="price"><strong>$99</strong><span>/ month</span></p>
-            <p>Up to 5 users. 14-day free trial.</p>
+            <p class="price"><strong>$99</strong><span>/month</span></p>
+            <p>5 users. 14-day free trial. A card is required.</p>
             <ul>
-              <li>Everything in Starter</li>
-              <li>SMS alerts</li>
-              <li>Estimate PDF</li>
+              <li>Inspection form, dashboard, and lead list</li>
+              <li>Follow-up tasks</li>
+              <li>Email alerts</li>
+              <li>CSV import and export</li>
             </ul>
           </article>
         </div>
-        <p class="fine-print">SMS alerts and estimate PDFs are part of the $99 plan. They are not switched on in this version. This CRM also uses one shared staff login, not a separate password per person. See the questions below.</p>
+        <p class="fine-print">SMS alerts, estimate PDFs, and a separate login for each person are not in this version. The $99/month plan is priced for 5 users, and this CRM still uses one shared staff login. A full refund of the first subscription charge is available for ${REFUND_DAYS} days after that charge. Read the <a href="/refunds">Refund Policy</a>.</p>
       </section>
 
       <section class="wrap market-section" id="faq">
@@ -141,15 +144,15 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
           </details>
           <details>
             <summary>Are SMS alerts and estimate PDFs working today?</summary>
-            <p>They are included in the $99 plan. They are not switched on in this version. Ask us before a pilot depends on a text alert or a PDF estimate.</p>
+            <p>No. SMS alerts, estimate PDFs, and a separate login for each person are not in this version. The $99/month plan is priced for 5 users. This CRM uses one shared staff login.</p>
           </details>
           <details>
             <summary>How do the user limits work?</summary>
-            <p>Starter is priced for up to 2 people and Crew for up to 5. This version has one shared staff login. We will not charge you for separate seats this version cannot keep apart.</p>
+            <p>$49/month is priced for 2 users. $99/month is priced for 5 users. This version has one shared staff login, not a separate password per person. We will not charge you for separate seats this version cannot keep apart.</p>
           </details>
           <details>
             <summary>How do I cancel?</summary>
-            <p>Email <a href="mailto:${escapeHtml(LEGAL.contactEmail)}">${escapeHtml(LEGAL.contactEmail)}</a>. A free pilot has nothing to bill. A paid plan is month to month after the 14-day trial. Cancel anytime before the next month starts.</p>
+            <p>You can cancel any time. A paid plan is $49/month (2 users) or $99/month (5 users), with a 14-day free trial. A card is required to start the trial, and the subscription auto-renews monthly until you cancel. If you ask within ${REFUND_DAYS} days of the first charge, you get a full refund of that subscription payment. Paddle.com handles returns. You can also email <a href="mailto:${escapeHtml(LEGAL.supportEmail)}">${escapeHtml(LEGAL.supportEmail)}</a>. See the <a href="/refunds">Refund Policy</a>.</p>
           </details>
           <details>
             <summary>Where is the homeowner form?</summary>
@@ -159,6 +162,13 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
       </section>
 
       <section class="wrap market-section" id="request-pilot">
+        <div class="form-card contact-card" id="contact">
+          <p class="eyebrow">Seller</p>
+          <h2>${escapeHtml(LEGAL.legalName)}</h2>
+          <p>Sole proprietor, operating as ${escapeHtml(LEGAL.vendorName)}.</p>
+          <p class="contact-line"><a href="tel:${escapeHtml(String(LEGAL.supportPhone).replace(/[^\d+]/g, ""))}">${escapeHtml(LEGAL.supportPhone)}</a></p>
+          <p class="contact-line"><a href="mailto:${escapeHtml(LEGAL.supportEmail)}">${escapeHtml(LEGAL.supportEmail)}</a></p>
+        </div>
         <div class="form-card pilot-card">
           <h2>Request a pilot</h2>
           <p>Tell us how to reach you. We store the request and show it in the CRM notifications list. This does not start billing.</p>
@@ -203,7 +213,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
               <textarea id="pilot_note" name="note" maxlength="2000" rows="4">${v("note")}</textarea>
             </div>
             <button type="submit" class="btn primary">Send pilot request</button>
-            <p class="fine-print">Or email <a href="mailto:${escapeHtml(LEGAL.pilotsEmail)}">${escapeHtml(LEGAL.pilotsEmail)}</a>.</p>
+            <p class="fine-print">Or email <a href="mailto:${escapeHtml(LEGAL.supportEmail)}">${escapeHtml(LEGAL.supportEmail)}</a>.</p>
           </form>
         </div>
       </section>
@@ -217,7 +227,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
   }
 
   function privacyPage() {
-    const email = escapeHtml(LEGAL.privacyEmail);
+    const email = escapeHtml(LEGAL.supportEmail);
     const company = escapeHtml(COMPANY_NAME);
     const where = COMPANY_LOCATION ? ` in ${escapeHtml(COMPANY_LOCATION)}` : "";
     const body = `
@@ -229,7 +239,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
       <p class="muted">Last updated ${escapeHtml(LEGAL.updated)}. ${escapeHtml(LEGAL.vendorName)} wrote this in plain language for the ${escapeHtml(LEGAL.productName)} pilot.</p>
 
       <h2>Who we are</h2>
-      <p>${escapeHtml(LEGAL.vendorName)} makes ${escapeHtml(LEGAL.productName)}, the software behind this website. The roofing company that owns the inspection form is the business a homeowner is contacting. On this server that company name is ${company}${where}. If a roofer is running a pilot, their own company name appears on the form.</p>
+      <p>${escapeHtml(LEGAL.legalName)}, a sole proprietor operating as ${escapeHtml(LEGAL.vendorName)}, makes ${escapeHtml(LEGAL.productName)}, the software behind this website. Support: <a href="tel:${escapeHtml(String(LEGAL.supportPhone).replace(/[^\d+]/g, ""))}">${escapeHtml(LEGAL.supportPhone)}</a> and <a href="mailto:${email}">${email}</a>. The roofing company that owns the inspection form is the business a homeowner is contacting. On this server that company name is ${company}${where}. If a roofer is running a pilot, their own company name appears on the form.</p>
 
       <h2>Information the inspection form collects</h2>
       <p>When a homeowner sends an inspection request, we collect:</p>
@@ -258,6 +268,7 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
         <li><strong>The roofing company that owns the form.</strong> Staff who can sign in to that company’s CRM can see its leads, photos, notes, and tasks.</li>
         <li><strong>The email provider.</strong> This app sends office alerts through Resend when that service is configured. The alert includes the lead’s name, phone, email, address, and what they asked for.</li>
         <li><strong>A text-message provider, if texts are turned on later.</strong> SMS alerts are part of the $99 plan and are not switched on in this version. If they are turned on, the phone number and the message are shared with the company that sends the texts.</li>
+        <li><strong>Paddle.com, when a roofing company pays for a plan.</strong> Paddle is the merchant of record. Paddle collects the card and billing details for the subscription. This site does not store card numbers.</li>
         <li><strong>The host.</strong> The website and the database are stored with the company that hosts this app. Sign-in sessions for staff are stored in that same database.</li>
       </ul>
       <p>We may also share information if the law requires it, or to protect someone from harm.</p>
@@ -280,14 +291,16 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
       <p>If we change this policy, we will update the date at the top. For a pilot, we will also tell the roofing company when the change is material.</p>
 
       <h2>Contact</h2>
-      <p>Privacy questions and deletion requests: <a href="mailto:${email}">${email}</a>. Other questions: <a href="mailto:${escapeHtml(LEGAL.contactEmail)}">${escapeHtml(LEGAL.contactEmail)}</a>.</p>
+      <p>Privacy questions and deletion requests: <a href="mailto:${email}">${email}</a> or <a href="tel:${escapeHtml(String(LEGAL.supportPhone).replace(/[^\d+]/g, ""))}">${escapeHtml(LEGAL.supportPhone)}</a>. ${escapeHtml(LEGAL.legalName)}, sole proprietor.</p>
     </main>
     ${publicFooter()}`;
     return layout({ title: `Privacy Policy | ${LEGAL.productName}`, body });
   }
 
   function termsPage() {
-    const email = escapeHtml(LEGAL.contactEmail);
+    const email = escapeHtml(LEGAL.supportEmail);
+    const phone = escapeHtml(LEGAL.supportPhone);
+    const phoneHref = escapeHtml(String(LEGAL.supportPhone).replace(/[^\d+]/g, ""));
     const consent = smsConsentHtml(COMPANY_NAME);
     const body = `
     ${LAWYER_TODO}
@@ -296,6 +309,9 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
       <p class="eyebrow">Terms of Service</p>
       <h1>Terms of Service</h1>
       <p class="muted">Last updated ${escapeHtml(LEGAL.updated)}. These terms cover two uses of this website: a roofing company using ${escapeHtml(LEGAL.productName)}, and a homeowner using the inspection form.</p>
+
+      <h2>The seller</h2>
+      <p>The seller is ${escapeHtml(LEGAL.legalName)}, a sole proprietor operating as ${escapeHtml(LEGAL.vendorName)}. Support is <a href="tel:${phoneHref}">${phone}</a> and <a href="mailto:${email}">${email}</a>.</p>
 
       <h2>The product</h2>
       <p>${escapeHtml(LEGAL.vendorName)} provides ${escapeHtml(LEGAL.productName)}, a lead form and a small CRM for roofing companies. We are about to run free pilots. The software stores inspection requests and helps the office follow up. It does not do the roofing work.</p>
@@ -310,30 +326,57 @@ module.exports = function createPublicPages({ layout, escapeHtml, publicFooter, 
       <p>You will not pretend sample or fictional leads are real customers.</p>
 
       <h2>Pilots, trial, and price</h2>
-      <p>Free pilots come first. A pilot is arranged with us and is not billed. Nothing on this website collects a credit card.</p>
-      <p>After a pilot, paid plans are month to month and start with a 14-day free trial:</p>
-      <ul>
-        <li><strong>Starter, $49 a month.</strong> Up to 2 users. Inspection form, dashboard, lead list, follow-up tasks, email alerts, and CSV import and export.</li>
-        <li><strong>Crew, $99 a month.</strong> Up to 5 users. Everything in Starter, plus SMS alerts and an estimate PDF.</li>
-      </ul>
-      <p>SMS alerts and estimate PDFs are part of the Crew plan and are not switched on in this version. This version also uses one shared staff login, not a separate password for each person. We will not bill you for separate seats this version cannot keep apart. We will tell you before the first charge.</p>
-      <p>If you cancel during the 14-day trial, you are not billed. After the trial, the plan renews each month until you cancel. Cancel anytime by emailing <a href="mailto:${email}">${email}</a>. We stop the next renewal. We do not promise a refund for a month that has already started.</p>
+      <p>Free pilots come first. A pilot is arranged with us and is not billed on this page.</p>
+      <p>After a pilot, a paid plan is a monthly subscription: $49/month (2 users) or $99/month (5 users). Each plan includes the inspection form, dashboard, lead list, follow-up tasks, email alerts, and CSV import and export.</p>
+      <p>Each paid plan starts with a 14-day free trial, and a card is required to start that trial. After the trial, the subscription auto-renews monthly until you cancel. You can cancel any time. Canceling stops the next renewal.</p>
+      <p>Before you pay, you must accept these Terms and the <a href="/refunds">Refund Policy</a>.</p>
+      <p>SMS alerts, estimate PDFs, and a separate login for each person are not in this version. The $99/month plan is priced for 5 users. This version uses one shared staff login. We will not bill you for separate seats this version cannot keep apart.</p>
+      <p>If you request it within ${REFUND_DAYS} days of the first charge, you receive a full refund of that subscription payment. Paddle.com handles returns. You can also contact support. The <a href="/refunds">Refund Policy</a> states this in full.</p>
+
+      <h2>Payments</h2>
+      <p>${escapeHtml(PADDLE_ORDER_SENTENCE)}</p>
+      <p>Payments are processed by Paddle.</p>
 
       <h2>Acceptable use</h2>
       <p>Do not misuse the site. That includes sending unlawful texts or calls, uploading malware, probing the service for a way in, or using someone else’s information without a right to do so. Homeowners should not use the form for an emergency that needs the fire department or an ambulance. Get off a roof that is unsafe, and call local emergency services when someone is in danger.</p>
 
       <h2>Roofing work is between the homeowner and the roofer</h2>
-      <p>${escapeHtml(LEGAL.vendorName)} provides software. A repair, replacement, or inspection is a job between the homeowner and the roofing company. We do not promise a response time, a price for roof work, or that an on-screen estimate is a contract. An estimate PDF, when that feature is on, is a document the roofing company can give a customer. It is not a bid from ${escapeHtml(LEGAL.vendorName)}.</p>
+      <p>${escapeHtml(LEGAL.legalName)} provides software, operating as ${escapeHtml(LEGAL.vendorName)}. A repair, replacement, or inspection is a job between the homeowner and the roofing company. We do not promise a response time or a price for roof work. An estimate PDF is not included in this version.</p>
 
       <h2>The service can change</h2>
       <p>Pilots are an early version. Features can change, and the site can be unavailable while it is hosted on a free plan that sleeps when idle. We will not invent results or hide a lead that was saved. If we cannot save a request, the form says so.</p>
 
       <h2>Contact</h2>
-      <p>Questions about these terms, billing, or cancellation: <a href="mailto:${email}">${email}</a>. Privacy and deletion requests: <a href="mailto:${escapeHtml(LEGAL.privacyEmail)}">${escapeHtml(LEGAL.privacyEmail)}</a>.</p>
+      <p>Questions about these terms, billing, cancellation, or a refund: <a href="mailto:${email}">${email}</a> or <a href="tel:${phoneHref}">${phone}</a>. ${escapeHtml(LEGAL.legalName)}, sole proprietor.</p>
     </main>
     ${publicFooter()}`;
     return layout({ title: `Terms of Service | ${LEGAL.productName}`, body });
   }
 
-  return { landingPage, privacyPage, termsPage };
+  function refundsPage() {
+    const email = escapeHtml(LEGAL.supportEmail);
+    const phone = escapeHtml(LEGAL.supportPhone);
+    const phoneHref = escapeHtml(String(LEGAL.supportPhone).replace(/[^\d+]/g, ""));
+    const body = `
+    ${LAWYER_TODO}
+    ${marketingHeader()}
+    <main class="wrap legal-doc">
+      <p class="eyebrow">Refund Policy</p>
+      <h1>Refund Policy</h1>
+      <p class="muted">Last updated ${escapeHtml(LEGAL.updated)}. The seller is ${escapeHtml(LEGAL.legalName)}, a sole proprietor operating as ${escapeHtml(LEGAL.vendorName)}.</p>
+
+      <h2>Full refund of the first charge</h2>
+      <p>You can ask for a full refund of the subscription payment if you request it within ${REFUND_DAYS} days of the first charge.</p>
+      <p>The paid plans are a monthly subscription: $49/month (2 users) or $99/month (5 users). Each plan starts with a 14-day free trial, and a card is required to start that trial. After the trial, the subscription auto-renews monthly until you cancel. You can cancel any time.</p>
+
+      <h2>How to ask</h2>
+      <p>${escapeHtml(PADDLE_ORDER_SENTENCE)}</p>
+      <p>Request the refund through Paddle. Paddle.com handles returns. You can also contact support at <a href="mailto:${email}">${email}</a> or <a href="tel:${phoneHref}">${phone}</a>, and we will help you reach Paddle.</p>
+      <p>See the <a href="/terms">Terms of Service</a> for the subscription, the trial, and cancellation.</p>
+    </main>
+    ${publicFooter()}`;
+    return layout({ title: `Refund Policy | ${LEGAL.productName}`, body });
+  }
+
+  return { landingPage, privacyPage, termsPage, refundsPage };
 };
