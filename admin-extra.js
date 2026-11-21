@@ -2,6 +2,7 @@
 
 const multer = require("multer");
 const csv = require("./csv");
+const demoSeed = require("./demo-seed");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -46,6 +47,39 @@ function errorText(errors) {
 
 function register(app, deps) {
   const { admin, dbmod, views, workflow, scorer, chrome, validate, getDb } = deps;
+
+  function requireReseed(req, res, next) {
+    if (!demoSeed.demoReseedEnabled()) return next("route");
+    return admin(req, res, next);
+  }
+
+  app.get("/admin/reseed", requireReseed, async (req, res, next) => {
+    try {
+      const done = Number(req.query.done);
+      const seeded = Number.isInteger(done) && done >= 0 && done <= 1000 ? done : null;
+      res.type("html").send(views.reseedPage({ chrome: await chrome(), seeded }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/admin/reseed", requireReseed, async (req, res, next) => {
+    try {
+      const confirm = String((req.body && req.body.confirm) || "").trim();
+      if (confirm !== "RESEED") {
+        res.status(400);
+        return res.type("html").send(views.reseedPage({
+          chrome: await chrome(),
+          error: "Type RESEED in the confirmation box to replace the demo data.",
+        }));
+      }
+      const result = await demoSeed.reseedDemoData(dbmod);
+      console.log(`Admin reseeded demo data: ${result.count} fictional leads.`);
+      res.redirect("/admin/reseed?done=" + result.count);
+    } catch (err) {
+      next(err);
+    }
+  });
 
   app.get("/admin/import", admin, (req, res) => {
     res.redirect(302, "/admin/leads/import");

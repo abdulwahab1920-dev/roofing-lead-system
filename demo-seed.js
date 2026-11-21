@@ -473,6 +473,10 @@ async function maybeResetDemoData(dbmod) {
   return { ran: true, count };
 }
 
+function demoReseedEnabled() {
+  return String(process.env.ALLOW_DEMO_RESEED || "").trim() === "1";
+}
+
 async function reseedDemoData(dbmod) {
   await ensureMeta(dbmod);
   const existing = await dbmod.pool.query("SELECT value FROM demo_meta WHERE key = $1", [META_KEY]);
@@ -504,6 +508,7 @@ if (require.main === module) {
 module.exports = {
   maybeResetDemoData,
   reseedDemoData,
+  demoReseedEnabled,
   buildSeedSchedule,
   SAMPLE_LEADS,
 };
