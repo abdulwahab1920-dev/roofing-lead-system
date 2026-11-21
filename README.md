@@ -16,6 +16,7 @@ Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 - Privacy: `/privacy`
 - Terms: `/terms`
 - Refunds: `/refunds`
+- Paddle billing (off unless `PADDLE_ENABLED` is exactly `1`): see [docs/PADDLE.md](docs/PADDLE.md)
 - Pilot request: `POST /pilot` (stored in the database and the staff notifications list)
 - CRM login: `/admin/login`
 - Dashboard: `/admin`

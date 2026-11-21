@@ -116,6 +116,11 @@ async function waitForServer(url, child) {
     assert.match(refundsHtml, /Paddle\.com handles returns/);
     assert.doesNotMatch(refundsHtml, /all sales final/i);
     assertPublicSeller(refundsHtml, "refunds");
+    assert.doesNotMatch(homeHtml, /cdn\.paddle\.com/);
+    assert.equal((await fetch(base + "/subscribe")).status, 404, "Subscribe stays hidden until Paddle is enabled.");
+    assert.equal((await fetch(base + "/subscribe/thanks")).status, 404, "Subscribe thanks stays hidden until Paddle is enabled.");
+    assert.equal((await fetch(base + "/admin/billing")).status, 404, "Billing stays hidden until Paddle is enabled.");
+    assert.equal((await fetch(base + "/webhooks/paddle", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status, 404, "The webhook stays hidden until Paddle is enabled.");
 
     const form = await fetch(base + "/inspection");
     assert.equal(form.status, 200, "Public lead form should load.");
