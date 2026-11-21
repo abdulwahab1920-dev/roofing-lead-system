@@ -28,7 +28,12 @@ CREATE TABLE IF NOT EXISTS leads (
   ai_followup TEXT,
   ai_summary TEXT,
   ai_scored_at TEXT,
-  ai_source TEXT
+  ai_source TEXT,
+  sms_consent BOOLEAN NOT NULL DEFAULT FALSE,
+  sms_consent_text TEXT,
+  sms_consent_version TEXT,
+  sms_consent_at TEXT,
+  sms_consent_ip TEXT
 );
 
 CREATE TABLE IF NOT EXISTS lead_photos (
@@ -78,6 +83,17 @@ CREATE TABLE IF NOT EXISTS tasks (
   due_at TEXT NOT NULL,
   completed_at TEXT,
   notified_overdue_at TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pilot_requests (
+  id BIGSERIAL PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL DEFAULT '',
+  company_name TEXT NOT NULL,
+  city TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL
 );
 

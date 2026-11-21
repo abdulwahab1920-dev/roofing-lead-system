@@ -427,5 +427,90 @@ input.invalid, select.invalid, textarea.invalid { border-color: #b42318; }
   .kpi-grid, .dash-grid { grid-template-columns: 1fr; }
 }
 
+.public-nav { display: flex; flex-wrap: wrap; gap: 14px 16px; }
+.public-nav a { color: #d7deea; text-decoration: none; font-weight: 650; font-size: 0.92rem; }
+.public-nav a:hover { color: #fff; }
+.legal-links a { color: var(--navy); font-weight: 650; }
+.site-footer .legal-links { margin: 8px 0; }
+.check-line { display: flex; gap: 12px; align-items: flex-start; font-weight: 500; font-size: 0.92rem; line-height: 1.45; }
+.check-line input { width: 22px; height: 22px; min-width: 22px; margin-top: 2px; padding: 0; accent-color: var(--copper); }
+.check-line label { display: inline; font-weight: 500; margin: 0; cursor: pointer; }
+.check-copy { margin: 0; }
+.check-line a { color: var(--copper-dark); font-weight: 700; }
+.consent-copy { overflow-wrap: anywhere; }
+.opt { font-weight: 500; color: var(--muted); font-size: 0.85rem; }
+
+.market-hero {
+  background:
+    linear-gradient(90deg, rgba(18, 28, 51, 0.92) 0%, rgba(18, 28, 51, 0.78) 55%, rgba(18, 28, 51, 0.62) 100%),
+    url("/form-assets/assets/hero-roof-slate.jpg") center 30% / cover no-repeat;
+  color: #fff;
+  padding: 72px 0 64px;
+}
+.market h1, .legal-doc h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0 0 14px;
+}
+.market-hero h1 { color: #fff; font-size: clamp(2.3rem, 5vw, 3.6rem); max-width: 11em; }
+.market-hero .eyebrow { color: #f6c9a6; }
+.market-hero .lede { color: #e7edf6; font-size: 1.12rem; max-width: 40rem; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 14px; }
+.hero-actions .btn { width: auto; }
+.hero-actions .btn.secondary { background: var(--copper); }
+.hero-actions .btn.secondary:hover { background: var(--copper-dark); }
+.hero-note { margin: 0; max-width: 40rem; color: #d5deea; font-size: 0.92rem; }
+.market-section { padding: 28px 0 8px; }
+.market-section h2, .legal-doc h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--navy-deep);
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 28px 0 14px;
+}
+.benefit-grid, .price-grid, .step-grid { display: grid; gap: 16px; }
+.benefit-grid { grid-template-columns: 1fr 1fr; }
+.benefit-grid article, .price-card, .step-grid li {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 18px 8px;
+}
+.benefit-grid h3, .price-card h3, .step-grid h3 { margin: 0 0 8px; color: var(--navy); font-size: 1.05rem; }
+.benefit-grid p, .price-card p, .step-grid p { margin: 0 0 12px; }
+.step-grid { list-style: none; padding: 0; margin: 0; grid-template-columns: repeat(3, 1fr); }
+.step-grid li { display: flex; gap: 14px; align-items: flex-start; }
+.step-grid li > span {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto;
+  border-radius: 50%; background: var(--navy); color: #fff; font-weight: 750;
+}
+.price-grid { grid-template-columns: 1fr 1fr; align-items: stretch; }
+.price-card { padding-bottom: 18px; }
+.price-card ul { margin: 0; padding-left: 18px; }
+.price-card li { margin: 6px 0; }
+.price { margin: 0 0 8px; color: var(--navy-deep); }
+.price strong { font-size: 2.4rem; letter-spacing: -0.03em; }
+.price span { color: var(--muted); margin-left: 4px; }
+.price-crew { border-color: var(--copper); box-shadow: 0 8px 24px rgba(196, 92, 38, 0.12); }
+.faq details { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin: 0 0 10px; }
+.faq summary { cursor: pointer; font-weight: 700; color: var(--navy); }
+.faq details p { margin: 10px 0 4px; }
+.pilot-card { max-width: 760px; margin: 12px auto 36px; }
+.pilot-card .btn.primary { width: auto; min-width: 220px; }
+.form-alert { padding-top: 18px; }
+.legal-doc { max-width: 760px; padding-bottom: 48px; }
+.legal-doc p, .legal-doc li { font-size: 1.02rem; }
+.legal-doc h2 { font-size: 1.35rem; }
+.legal-doc code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.92em; }
+.legal-doc a, .market a { color: var(--copper-dark); }
+.market-hero a.btn { color: #fff; }
+@media (max-width: 860px) {
+  .benefit-grid, .price-grid, .step-grid { grid-template-columns: 1fr; }
+  .market-hero { padding: 48px 0 40px; }
+}
+
 /* Uploaded homeowner photos on the CRM lead detail page */
 .lead-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:14px}.lead-photos a{display:block;min-width:0;color:inherit;text-decoration:none}.lead-photos img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #d9dde4}.lead-photos span{display:block;margin-top:5px;font-size:12px;overflow-wrap:anywhere}

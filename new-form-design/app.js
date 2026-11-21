@@ -42,7 +42,8 @@
     urgency: () => radio("urgency") ? "" : "Choose when you need us.",
     phone: () => { const d = digits($("#phone").value); if (!d) return needsPhone() ? (radio("preferred_contact") === "Text" ? "Enter a mobile number so we can text you." : "Enter a phone number so we can call you.") : ""; return d.length === 10 || (d.length === 11 && d[0] === "1") ? "" : "Enter a 10 digit phone number, for example (555) 123 4567."; },
     full_name: () => $("#full_name").value.trim().length >= 2 ? "" : "Enter your name.",
-    email: () => { const v = $("#email").value.trim(); if (!v) return needsPhone() ? "" : "Enter your email so we can reply."; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? "" : "Check the email, it should look like name@example.com."; }
+    email: () => { const v = $("#email").value.trim(); if (!v) return needsPhone() ? "" : "Enter your email so we can reply."; return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) ? "" : "Check the email, it should look like name@example.com."; },
+    sms_consent: () => radio("preferred_contact") === "Text" && !$("#sms_consent").checked ? "Check the box to agree to calls and texts about this request." : ""
   };
   const FIELD = {
     phone: ["#phone", "#phone-msg"], full_name: ["#full_name", "#name-msg"], email: ["#email", "#email-msg"],
@@ -50,9 +51,19 @@
     address: ["#address", "#address-msg"]
   };
   const GROUP = { service_needed: ["#f-service", "#service-msg"], roof_type: ["#f-roof", "#roof-msg"], urgency: ["#f-urgency", "#urgency-msg"] };
-  const LABEL = { service_needed: "What you need", address: "Property address", street: "Street address", city: "City", state: "State", zip: "ZIP", roof_type: "Roof type", urgency: "Timing", phone: "Phone", full_name: "Full name", email: "Email" };
+  const LABEL = { service_needed: "What you need", address: "Property address", street: "Street address", city: "City", state: "State", zip: "ZIP", roof_type: "Roof type", urgency: "Timing", phone: "Phone", full_name: "Full name", email: "Email", sms_consent: "Calls and texts" };
 
   function check(key, show = true) {
+    if (key === "sms_consent") {
+      const err = V.sms_consent();
+      if (show) {
+        const msg = $("#consent-msg");
+        const box = $("#sms-consent-field");
+        if (msg) msg.textContent = err || "";
+        if (box) box.classList.toggle("is-invalid", !!err);
+      }
+      return err;
+    }
     const err = V[key]();
     if (!show) return err;
     if (FIELD[key]) setMsg($(FIELD[key][0]), $(FIELD[key][1]), err);
@@ -63,7 +74,9 @@
     if (n === 1) return ["service_needed"];
     if (n === 2) return ["street", "city", "state", "zip", "roof_type"];
     if (n === 3) return ["urgency"];
-    return needsPhone() ? ["phone", "full_name", "email"] : ["email", "full_name", "phone"];
+    const keys = needsPhone() ? ["phone", "full_name", "email"] : ["email", "full_name", "phone"];
+    if (radio("preferred_contact") === "Text") keys.push("sms_consent");
+    return keys;
   }
 
   /* ---------- live validation as people type ---------- */
@@ -103,9 +116,24 @@
     if (phoneReq) box.append($("#phone-field"), $("#name-field"), $("#email-field"));
     else box.append($("#email-field"), $("#name-field"), $("#phone-field"));
     ["phone", "email"].forEach(k => { if (touched.has(k) || $(FIELD[k][0]).value) check(k); else setMsg($(FIELD[k][0]), $(FIELD[k][1]), ""); });
+    const showConsent = m === "Phone" || m === "Text";
+    const consent = $("#sms-consent-field");
+    const consentBox = $("#sms_consent");
+    if (consent && consentBox) {
+      consent.hidden = !showConsent;
+      consentBox.disabled = !showConsent;
+      if (!showConsent) {
+        consentBox.checked = false;
+        consent.classList.remove("is-invalid");
+        const msg = $("#consent-msg");
+        if (msg) msg.textContent = "";
+      } else if (touched.has("sms_consent")) check("sms_consent");
+    }
     refreshSummary();
   }
-  $$('input[name="preferred_contact"]').forEach(r => r.addEventListener("change", () => { applyMethod(); announce(radio("preferred_contact") === "Email" ? "Email is now required. Phone is optional." : "Phone is required. Email is optional."); }));
+  $$('input[name="preferred_contact"]').forEach(r => r.addEventListener("change", () => { applyMethod(); announce(radio("preferred_contact") === "Email" ? "Email is now required. Phone is optional." : radio("preferred_contact") === "Text" ? "A mobile number is required. Agree to calls and texts before we can text you." : "Phone is required. Email is optional."); }));
+  const consentBox = $("#sms_consent");
+  if (consentBox) consentBox.addEventListener("change", () => { touched.add("sms_consent"); check("sms_consent"); refreshSummary(); });
 
   /* ---------- auto advance: pointer tap or Enter only, never arrow keys ---------- */
   let viaPointer = false, advTimer = null;
@@ -177,7 +205,7 @@
   }
   $("#err-list").addEventListener("click", e => {
     const a = e.target.closest("a"); if (!a) return; e.preventDefault();
-    const k = a.dataset.k; const el = FIELD[k] ? $(FIELD[k][0]) : $(`${GROUP[k][0]} input`); el.focus();
+    const k = a.dataset.k; const el = k === "sms_consent" ? $("#sms_consent") : FIELD[k] ? $(FIELD[k][0]) : $(`${GROUP[k][0]} input`); if (el) el.focus();
   });
 
   /* ---------- navigation ---------- */
@@ -214,7 +242,7 @@
     if (step < TOTAL) go(step + 1); else submit();
   });
   $("#back-btn").addEventListener("click", () => go(step - 1));
-  form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "file" && e.target.id !== "address") { e.preventDefault(); $("#next-btn").click(); } });
+  form.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "file" && e.target.type !== "checkbox" && e.target.id !== "address") { e.preventDefault(); $("#next-btn").click(); } });
   document.body.classList.add("form-active");
   form.addEventListener("submit", e => { e.preventDefault(); if (step === TOTAL) { if (validateStep()) submit(); } else $("#next-btn").click(); });
 
@@ -242,7 +270,7 @@
       $("#s-ref").textContent = result.reference || ("RL-" + result.id);
       $("#s-urgent").hidden = !radio("urgency").startsWith("Emergency");
       form.hidden = true; $("#progress-wrap").hidden = true; $("#success").hidden = false; document.body.classList.add("done");
-      $("#lead-card").scrollIntoView({block:"start"}); $("#success").focus({preventScroll:true}); announce("Test request saved successfully.");
+      $("#lead-card").scrollIntoView({block:"start"}); $("#success").focus({preventScroll:true}); announce("Request saved.");
     } catch (_) {
       const message = "Network error. Your request was not confirmed as saved. Please try again.";
       $("#err-summary").hidden = false; $("#err-list").textContent = message; $("#err-summary").focus(); announce(message);

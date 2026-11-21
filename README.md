@@ -11,7 +11,11 @@ Requires Node.js 22 or newer. The app listens on `0.0.0.0:$PORT` (default 3847).
 
 ## Routes
 
-- Public lead form: `/`
+- Product page for roofers: `/`
+- Public inspection form: `/inspection`
+- Privacy: `/privacy`
+- Terms: `/terms`
+- Pilot request: `POST /pilot` (stored in the database and the staff notifications list)
 - CRM login: `/admin/login`
 - Dashboard: `/admin`
 - Leads: `/admin/leads`

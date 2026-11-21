@@ -1,5 +1,6 @@
 const { DEMO_MODE, COMPANY_NAME, COMPANY_PHONE, COMPANY_LOCATION, SERVICE_AREA } = require("./company");
 const { demoReseedEnabled } = require("./demo-seed");
+const { smsConsentLeadIn } = require("./legal");
 
 const {
   STATUSES,
@@ -86,6 +87,7 @@ function logoMark() {
 function publicFooter() {
   return `<footer class="site-footer">
     <p>© 2026 ${escapeHtml(COMPANY_NAME)}${COMPANY_LOCATION ? " · " + escapeHtml(COMPANY_LOCATION) : ""}</p>
+    <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/">For roofing companies</a></p>
     <p class="powered">Powered by Artific Creations</p>
   </footer>`;
 }
@@ -106,7 +108,7 @@ function fieldError(errors, name) {
   return `<p class="field-error">${escapeHtml(errors[name])}</p>`;
 }
 
-function formPage({ values = {}, errors = {}, banner } = {}) {
+function formPage({ values = {}, errors = {}, banner, smsConsent = false } = {}) {
   const v = (name) => escapeHtml(values[name] || "");
   const invalid = (name) => (errors[name] ? " invalid" : "");
   const bannerHtml = banner
@@ -245,8 +247,15 @@ function formPage({ values = {}, errors = {}, banner } = {}) {
           </div>
         </fieldset>
 
+        <div class="field">
+          <div class="check-line">
+            <input id="sms_consent" name="sms_consent" type="checkbox" value="yes"${smsConsent ? " checked" : ""}>
+            <p class="check-copy"><label for="sms_consent">${escapeHtml(smsConsentLeadIn(COMPANY_NAME))}</label><a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</p>
+          </div>
+          ${fieldError(errors, "sms_consent")}
+        </div>
         <button type="submit" class="btn primary">Submit request</button>
-        <p class="fine-print">By submitting, you agree to be contacted about this request. We don’t sell your information.</p>
+        <p class="fine-print">The consent box is required when you ask us to text you. We don’t sell your information. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
       </form>
     </section>
   </main>
@@ -269,7 +278,7 @@ function thanksPage() {
       <p>${DEMO_MODE
         ? "Your sample request has been saved in the demonstration CRM. No roofing company will contact you."
         : "Your inspection request has been saved. Our team will follow up by your preferred contact method."}</p>
-      <p><a href="/" class="btn secondary">Submit another request</a></p>
+      <p><a href="/inspection" class="btn secondary">Submit another request</a></p>
     </section>
   </main>
   ${publicFooter()}`;
@@ -459,6 +468,7 @@ function loginPage({ error, next } = {}) {
         </div>
         <button type="submit" class="btn primary">Sign in</button>
       </form>
+      <p class="legal-links"><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
       <p class="powered">Powered by Artific Creations</p>
     </section>
   </main>`;
@@ -642,6 +652,7 @@ function detailPage({ lead, notes, error, tasks = [], photos = [], chrome }) {
           <div><dt>Phone</dt><dd>${escapeHtml(lead.phone)}</dd></div>
           <div><dt>Email</dt><dd>${escapeHtml(lead.email)}</dd></div>
           <div><dt>Preferred contact</dt><dd>${escapeHtml(lead.preferred_contact)}</dd></div>
+          ${consentFacts(lead)}
           <div><dt>Address</dt><dd>${escapeHtml(lead.street)}<br>${escapeHtml(lead.city)}, ${escapeHtml(lead.state)} ${escapeHtml(lead.zip)}</dd></div>
           <div><dt>Property type</dt><dd>${escapeHtml(lead.property_type)}</dd></div>
           <div><dt>Roof type</dt><dd>${escapeHtml(lead.roof_type)}</dd></div>
@@ -1131,12 +1142,29 @@ function reseedPage({ chrome, error, seeded } = {}) {
   return layout({ title: `Reseed demo data | ${escapeHtml(COMPANY_NAME)} CRM`, body, admin: true });
 }
 
+function consentFacts(lead) {
+  const agreed = lead.sms_consent === true;
+  if (!agreed) return `<div><dt>Call and text consent</dt><dd>Not recorded</dd></div>`;
+  return `<div><dt>Call and text consent</dt><dd>Yes</dd></div>
+          <div><dt>Consent version</dt><dd>${escapeHtml(lead.sms_consent_version || "—")}</dd></div>
+          <div><dt>Consent text</dt><dd class="consent-copy">${escapeHtml(lead.sms_consent_text || "—")}</dd></div>
+          <div><dt>Consent recorded</dt><dd>${escapeHtml(formatDate(lead.sms_consent_at) || "—")}</dd></div>
+          <div><dt>Consent IP address</dt><dd>${escapeHtml(lead.sms_consent_ip || "—")}</dd></div>`;
+}
+
 function notFoundPage({ admin = false } = {}) {
-  const href = admin ? "/admin" : "/";
+  const href = admin ? "/admin" : "/inspection";
   const label = admin ? "Back to the dashboard" : "Back to the inspection form";
-  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="${href}">${label}</a></p></section></main>`;
+  const body = `<main class="wrap narrow"><section class="form-card"><h1>Page not found</h1><p><a href="${href}">${label}</a></p></section></main>${admin ? "" : publicFooter()}`;
   return layout({ title: "Not found", body, admin });
 }
+
+const { landingPage, privacyPage, termsPage } = require("./public-pages")({
+  layout,
+  escapeHtml,
+  publicFooter,
+  fieldError,
+});
 
 module.exports = {
   escapeHtml,
@@ -1156,4 +1184,7 @@ module.exports = {
   importPage,
   reseedPage,
   notFoundPage,
+  landingPage,
+  privacyPage,
+  termsPage,
 };
